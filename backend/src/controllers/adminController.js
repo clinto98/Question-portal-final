@@ -317,22 +317,48 @@ const getDashboardStats = async (req, res) => {
         const { startDate, endDate } = getDateRange(timeframe, start, end);
 
         // --- 1. Summary Card Statistics (Corrected) ---
+        const totalApprovedData = await Checker.aggregate([
+            { $unwind: '$checkeracceptedquestion' },
+            { $unwind: '$checkeracceptedquestion.actionDates' },
+            {
+                $match: {
+                    'checkeracceptedquestion.actionDates': {
+                        $gte: startDate,
+                        $lte: endDate
+                    }
+                }
+            },
+            { $count: 'totalApproved' }
+        ]);
+        const totalApproved = totalApprovedData[0]?.totalApproved || 0;
+
+        const totalRejectedData = await Checker.aggregate([
+            { $unwind: '$checkerrejectedquestion' },
+            { $unwind: '$checkerrejectedquestion.actionDates' },
+            {
+                $match: {
+                    'checkerrejectedquestion.actionDates': {
+                        $gte: startDate,
+                        $lte: endDate
+                    }
+                }
+            },
+            { $count: 'totalRejected' }
+        ]);
+        const totalRejected = totalRejectedData[0]?.totalRejected || 0;
+
         const [
-            totalCreated, // CHANGED: Renamed from totalQuestions for clarity
-            totalApproved,
-            totalRejected,
+            totalCreated,
             totalResubmitted,
-            currentTotalPending, // This is the all-time snapshot, correctly named
+            currentTotalPending,
         ] = await Promise.all([
             Question.countDocuments({ createdAt: { $gte: startDate, $lte: endDate } }),
-            Question.countDocuments({ status: 'Approved', updatedAt: { $gte: startDate, $lte: endDate } }),
-            Question.countDocuments({ status: 'Rejected', updatedAt: { $gte: startDate, $lte: endDate } }),
             Question.countDocuments({
                 status: 'Pending',
                 makerComments: { $exists: true, $ne: "" },
                 updatedAt: { $gte: startDate, $lte: endDate }
             }),
-            Question.countDocuments({ status: 'Pending' }) // This remains the all-time count for the pie chart
+            Question.countDocuments({ status: 'Pending' })
         ]);
 
         // --- 2. Status Distribution (Unchanged, this is correct) ---
@@ -350,7 +376,6 @@ const getDashboardStats = async (req, res) => {
                 $group: {
                     _id: '$maker',
                     totalCreated: { $sum: 1 },
-                    approved: { $sum: { $cond: [{ $eq: ['$status', 'Approved'] }, 1, 0] } },
                     pending: { $sum: { $cond: [{ $eq: ['$status', 'Pending'] }, 1, 0] } },
                     drafted: { $sum: { $cond: [{ $eq: ['$status', 'Draft'] }, 1, 0] } }
                 }
@@ -370,7 +395,22 @@ const getDashboardStats = async (req, res) => {
                 $project: {
                     name: '$makerDetails.name',
                     totalCreated: 1,
-                    approved: 1,
+                    approved: { // NEW CALCULATION
+                        $reduce: {
+                            input: { $ifNull: ['$makerDetails.makeracceptedquestions', []] },
+                            initialValue: 0,
+                            in: {
+                                $add: [
+                                    '$$value',
+                                    { $size: { $filter: {
+                                        input: { $ifNull: ['$$this.actionDates', []] },
+                                        as: 'actionDate',
+                                        cond: { $and: [{ $gte: ['$$actionDate', startDate] }, { $lte: ['$$actionDate', endDate] }] }
+                                    }}}
+                                ]
+                            }
+                        }
+                    },
                     pending: 1,
                     drafted: 1,
                     historicalRejections: { // Calculate rejections within the date range from the log
@@ -397,41 +437,13 @@ const getDashboardStats = async (req, res) => {
         ]);
 
         // --- 4. Checker Performance Table (REWRITTEN FOR PERFORMANCE) ---
-        const checkerPerformance = await Question.aggregate([
-            // Stage 1: Filter reviewed questions by the date range first
-            { $match: {
-                status: { $in: ['Approved', 'Rejected'] },
-                updatedAt: { $gte: startDate, $lte: endDate }
-            }},
-            // Stage 2: Group by checker and calculate stats
-            {
-                $group: {
-                    _id: '$checkedBy',
-                    totalReviewed: { $sum: 1 },
-                    approved: { $sum: { $cond: [{ $eq: ['$status', 'Approved'] }, 1, 0] } },
-                    rejected: { $sum: { $cond: [{ $eq: ['$status', 'Rejected'] }, 1, 0] } }
-                }
-            },
-            // Stage 3: Lookup checker details
-            {
-                $lookup: {
-                    from: 'checkers', // Your Checker collection name
-                    localField: '_id',
-                    foreignField: '_id',
-                    as: 'checkerDetails'
-                }
-            },
-            { $unwind: '$checkerDetails' },
-            // Stage 4: Project final shape and calculate time-filtered false rejections
+        const checkerPerformance = await Checker.aggregate([
             {
                 $project: {
-                    name: '$checkerDetails.name',
-                    totalReviewed: 1,
-                    approved: 1,
-                    rejected: 1,
-                    falseRejections: { // Calculate false rejections from the log
-                         $reduce: {
-                            input: { $ifNull: ['$checkerDetails.checkerfalserejections', []] },
+                    name: '$name',
+                    approved: {
+                        $reduce: {
+                            input: { $ifNull: ['$checkeracceptedquestion', []] },
                             initialValue: 0,
                             in: {
                                 $add: [ '$$value', { $size: { $filter: {
@@ -442,9 +454,40 @@ const getDashboardStats = async (req, res) => {
                             }
                         }
                     },
-                    _id: 0
+                    rejected: {
+                        $reduce: {
+                            input: { $ifNull: ['$checkerrejectedquestion', []] },
+                            initialValue: 0,
+                            in: {
+                                $add: [ '$$value', { $size: { $filter: {
+                                    input: { $ifNull: ['$$this.actionDates', []] },
+                                    as: 'actionDate',
+                                    cond: { $and: [{ $gte: ['$$actionDate', startDate] }, { $lte: ['$$actionDate', endDate] }] }
+                                }}}]
+                            }
+                        }
+                    },
+                    falseRejections: {
+                        $reduce: {
+                            input: { $ifNull: ['$checkerfalserejections', []] },
+                            initialValue: 0,
+                            in: {
+                                $add: [ '$$value', { $size: { $filter: {
+                                    input: { $ifNull: ['$$this.actionDates', []] },
+                                    as: 'actionDate',
+                                    cond: { $and: [{ $gte: ['$$actionDate', startDate] }, { $lte: ['$$actionDate', endDate] }] }
+                                }}}]
+                            }
+                        }
+                    }
                 }
             },
+            {
+                $addFields: {
+                    totalReviewed: { $add: ['$approved', '$rejected'] }
+                }
+            },
+            { $match: { totalReviewed: { $gt: 0 } } },
             { $sort: { totalReviewed: -1 } },
             { $limit: 10 }
         ]);

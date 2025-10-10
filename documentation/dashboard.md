@@ -95,3 +95,85 @@ Here is a breakdown of each statistic:
 | Approved by You | **Yes** | Questions you approved in the selected timeframe. |
 | Rejected by You | No | All questions you have ever rejected. |
 | Total Pending | No | All questions in the system awaiting review. |
+
+# Admin Dashboard Data Calculation
+
+The Admin Dashboard provides a system-wide overview of all activity. The data is handled by the `getAdminDashboardStats` function in `adminController.js`. Most statistics are time-variant and will change based on the selected date range (e.g., "Weekly", "Monthly", "All", or a custom range).
+
+---
+
+### Data Accuracy: Flaws & Solutions
+
+To ensure the highest accuracy, several key metrics on the dashboard were updated to count **events** rather than **current states**. This is crucial because a question's status changes over its lifecycle.
+
+*   **The Flaw**: Previously, metrics like "Total Approved" and "Total Rejected" were calculated by counting questions currently in the `Approved` or `Rejected` state. This was inaccurate because a question's status is not permanent. For example, if a question was approved and then later finalized by an expert, its status would change to `Finalised`, and it would no longer be counted as approved. Similarly, if a rejected question was edited and resubmitted by a maker, its status would change to `Pending`, and the original rejection would be lost from the count.
+
+*   **The Solution**: The calculations have been rewritten to use the historical action logs stored within each `Maker` and `Checker` document. When a checker approves or rejects a question, a timestamped log entry is created. The dashboard now aggregates these log entries. This means we are counting the **actual approval and rejection events** that occurred within the selected timeframe, which provides a completely accurate historical record, regardless of the question's current status.
+
+---
+
+### Component Breakdown & Calculations
+
+#### Summary Cards
+
+*   **Total Created**: The total number of new questions created across the entire system **within the selected timeframe**.
+    *   **How it's calculated**: A count of documents in the `Question` collection where the `createdAt` field is within the date range.
+
+*   **Total Approved**: The total number of questions approved by checkers **within the selected timeframe**.
+    *   **How it's calculated**: An aggregation on the `Checker` collection that sums up all approval actions from the `checkeracceptedquestion` logs where the `actionDates` fall within the date range.
+
+*   **Total Rejected**: The total number of questions rejected by checkers **within the selected timeframe**.
+    *   **How it's calculated**: An aggregation on the `Checker` collection that sums up all rejection actions from the `checkerrejectedquestion` logs where the `actionDates` fall within the date range.
+
+*   **Total Pending**: The current number of questions in the system with a `Pending` status.
+    *   **How it's calculated**: A direct count of all documents in the `Question` collection with a `status` of `Pending`. This is a live snapshot and is **not time-variant**.
+
+#### Question Status Distribution
+
+*   **What it is**: A pie chart showing the current, live distribution of all questions in the database across every status (Approved, Rejected, Pending, Draft, etc.).
+*   **How it's calculated**: An aggregation pipeline on the `Question` collection that groups all documents by their `status` field and returns the count for each group.
+*   **Time Dependency**: **Not Time-Variant**.
+
+#### Top Maker Performance
+
+This table ranks the top 10 makers by their activity **within the selected timeframe**.
+
+*   **How it's calculated**: An aggregation pipeline that starts with questions created in the timeframe, groups them by `maker`, and then looks up the maker's details and historical logs from the `makers` collection.
+*   **Columns**:
+    *   **Created**: A sum of questions created by the maker in the timeframe (`Question` collection).
+    *   **Approved**: A sum of approval events from the maker's `makeracceptedquestions` log within the timeframe (`Maker` collection).
+    *   **Pending**: A sum of questions created by the maker in the timeframe that are currently in `Pending` status (`Question` collection).
+    *   **Drafted**: A sum of questions created by the maker in the timeframe that are currently in `Draft` status (`Question` collection).
+    *   **Hist. Rejections**: A sum of rejection events from the maker's `makerrejectedquestions` log within the timeframe (`Maker` collection).
+
+#### Checker Performance
+
+This table ranks the top 10 checkers by their activity **within the selected timeframe**.
+
+*   **How it's calculated**: An aggregation pipeline that starts from the `Checker` collection and calculates all metrics directly from the action logs within each checker's document.
+*   **Columns**:
+    *   **Total Reviewed**: The sum of `Approved` and `Rejected` actions performed by the checker in the timeframe.
+    *   **Approved**: A sum of approval events from the checker's `checkeracceptedquestion` log within the timeframe.
+    *   **Rejected**: A sum of rejection events from the checker's `checkerrejectedquestion` log within the timeframe.
+    *   **False Rejections**: A sum of events from the checker's `checkerfalserejections` log within the timeframe.
+
+### Summary Table
+
+| Field | Time Variant? | Description | Database Source |
+| :--- | :---: | :--- | :--- |
+| Total Created | **Yes** | Questions created in the selected timeframe. | `Question` |
+| Total Approved | **Yes** | Approval events that occurred in the timeframe. | `Checker` (Aggregation) |
+| Total Rejected | **Yes** | Rejection events that occurred in the timeframe. | `Checker` (Aggregation) |
+| Total Pending | No | All questions currently with "Pending" status. | `Question` |
+| Status Distribution | No | Current distribution of all questions by status. | `Question` (Aggregation) |
+| **Top Maker Performance** | | *(All fields are time-variant)* | |
+| &nbsp;&nbsp;*Created* | **Yes** | Questions created by the maker in the timeframe. | `Question` (Aggregation) |
+| &nbsp;&nbsp;*Approved* | **Yes** | Approvals for the maker in the timeframe. | `Maker` (Aggregation) |
+| &nbsp;&nbsp;*Pending* | **Yes** | Questions created by maker in timeframe now pending. | `Question` (Aggregation) |
+| &nbsp;&nbsp;*Drafted* | **Yes** | Questions created by maker in timeframe now in draft. | `Question` (Aggregation) |
+| &nbsp;&nbsp;*Hist. Rejections* | **Yes** | Rejections for the maker in the timeframe. | `Maker` (Aggregation) |
+| **Checker Performance** | | *(All fields are time-variant)* | |
+| &nbsp;&nbsp;*Total Reviewed* | **Yes** | Questions reviewed by the checker in the timeframe. | `Checker` (Aggregation) |
+| &nbsp;&nbsp;*Approved* | **Yes** | Questions approved by the checker in the timeframe. | `Checker` (Aggregation) |
+| &nbsp;&nbsp;*Rejected* | **Yes** | Questions rejected by the checker in the timeframe. | `Checker` (Aggregation) |
+| &nbsp;&nbsp;*False Rejections* | **Yes** | False rejections for the checker in the timeframe. | `Checker` (Aggregation) |
