@@ -1,16 +1,19 @@
-import CheckerNavbar from "../components/CheckerNavbar";
+import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
+import CheckerSidebar from "../components/CheckerSidebar";
 
 export default function CheckerPage() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <CheckerNavbar />
-      <main>
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          {/* The main content for each route will be rendered here */}
+    <div className="flex h-screen bg-gray-100">
+      <CheckerSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+
+      <div className="flex-1 flex flex-col">
+        <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
           <Outlet />
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
