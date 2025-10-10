@@ -12,12 +12,12 @@ async function seedAdmin() {
         console.log("✅ Connected to MongoDB");
 
 
-        const hashedPassword = await bcrypt.hash("anjali123", 10);
+        const hashedPassword = await bcrypt.hash("mahroof123", 10);
 
         // Seed Admin
         const admin = {
-            name: "Anjali",
-            email: "anjali@finlyntyx.com",
+            name: "Mahroof M P",
+            email: "mahroof@finlyntyx.com",
             password: hashedPassword,
         };
 

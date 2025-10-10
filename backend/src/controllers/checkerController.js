@@ -173,7 +173,8 @@ const rejectQuestion = async (req, res) => {
 const getReviewedQuestions = async (req, res) => {
     try {
         const questions = await Question.find({
-            status: { $in: ["Approved", "Rejected", "Finalised"] }
+            status: { $in: ["Approved", "Rejected", "Finalised"] },
+            checkedBy: req.user._id
         })
             // Populate the maker's details
             .populate("maker", "name email")
@@ -352,9 +353,8 @@ const getCheckerDashboardStats = async (req, res) => {
 
         // 1. Total questions (Approved + Pending) - Not timeframe dependent
         const totalQuestions = await Question.countDocuments({
-            status: { $in: ["Approved", "Pending","Finalised"] }
+            status: { $in: ["Approved", "Pending","Finalised","Rejected"] }
         });
-        console.log(totalQuestions)
 
         // 2. Approved by this checker - Timeframe dependent
         const checkerData = await Checker.aggregate([
