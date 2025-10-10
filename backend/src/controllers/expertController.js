@@ -25,18 +25,28 @@ const getApprovedQuestions = async (req, res) => {
 // @access  Private/Expert
 const getFinalizedQuestions = async (req, res) => {
     try {
-        const questions = await Question.find({ status: QUESTION_STATUS.FINALISED })
-            .populate("course", "title")
-            .populate("maker", "name");
+        const previousPapers = await PreviousQuestionPaper.find({}).populate('course', 'title').sort({ createdAt: -1 });
 
-        res.status(200).json({ success: true, data: questions });
+        const finalizedQuestions = previousPapers.flatMap(paper =>
+            paper.questions.map(q => ({
+                _id: q._id, // This is the sub-document ID
+                question: { text: q.question, image: q.diagramUrl },
+                course: paper.course, // Populated course
+                subject: paper.subject,
+                status: QUESTION_STATUS.FINALISED,
+                maker: { name: "N/A" }, // Maker info is not available in PreviousQuestionPaper
+                createdAt: paper.createdAt, // For sorting
+            }))
+        );
+
+        res.status(200).json({ success: true, data: finalizedQuestions });
     } catch (error) {
         console.error("Error fetching finalized questions:", error);
         res.status(500).json({ success: false, message: "Server Error" });
     }
 };
 
-// @desc    Get a single question by ID
+// @desc    Get a single question by ID from the main Questions collection
 // @route   GET /api/expert/questions/:id
 // @access  Private/Expert
 const getQuestionById = async (req, res) => {
@@ -61,6 +71,60 @@ const getQuestionById = async (req, res) => {
     }
 };
 
+// @desc    Get a single finalized question by its sub-document ID
+// @route   GET /api/expert/finalized-questions/:id
+// @access  Private/Expert
+const getFinalizedQuestionById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const paper = await PreviousQuestionPaper.findOne({ "questions._id": id }).populate('course', 'title');
+
+        if (!paper) {
+            return res.status(404).json({ success: false, message: "Finalized question not found" });
+        }
+
+        const finalizedQuestion = paper.questions.find(q => q._id.toString() === id);
+
+        if (!finalizedQuestion) {
+            return res.status(404).json({ success: false, message: "Finalized question not found in paper" });
+        }
+
+        const correctAnswer = finalizedQuestion.correctAnswer;
+        const options = finalizedQuestion.options.map(o => ({
+            text: o.text,
+            image: o.diagramUrl,
+            isCorrect: o.text === correctAnswer.text && o.diagramUrl === correctAnswer.diagramUrl,
+        }));
+
+        const responseData = {
+            question: {
+                text: finalizedQuestion.question,
+                image: finalizedQuestion.diagramUrl,
+            },
+            options: options,
+            explanation: {
+                text: finalizedQuestion.explanation,
+                image: finalizedQuestion.explanationImageUrl,
+            },
+            subject: paper.subject,
+            complexity: finalizedQuestion.difficulty,
+            keywords: finalizedQuestion.keywords,
+            questionPaper: {
+                name: paper.paperName,
+                course: paper.course,
+            },
+            unit: finalizedQuestion.unitNo,
+            chapter: finalizedQuestion.topic,
+        };
+
+        res.status(200).json({ success: true, data: responseData });
+    } catch (error) {
+        console.error("Error fetching finalized question by ID:", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+};
+
+
 // @desc    Approve a question and create a PreviousQuestionPaper
 // @route   POST /api/expert/questions/:id/approve
 // @access  Private/Expert
@@ -73,7 +137,7 @@ const approveQuestion = async (req, res) => {
             unit, unitNo, topic, keywords, explanation, existingExplanationImage
         } = req.body;
 
-        const question = await Question.findById(id).populate("questionPaper");
+        const question = await Question.findById(id).populate("questionPaper").populate("course");
 
         if (!question) {
             return res.status(404).json({ success: false, message: "Question not found" });
@@ -132,8 +196,9 @@ const approveQuestion = async (req, res) => {
             paperName: sourcePaper.name,
             sourceType: 'PDF',
             questions: [newQuestionPayload],
-            notes: explanation, // Using explanation as notes
+            notes: null, // Using explanation as notes
             unit: unit,
+            course: question.course._id,
         });
 
         await newPreviousPaper.save();
@@ -154,4 +219,4 @@ const approveQuestion = async (req, res) => {
     }
 };
 
-export { getApprovedQuestions, getFinalizedQuestions, getQuestionById, approveQuestion };
+export { getApprovedQuestions, getFinalizedQuestions, getQuestionById, getFinalizedQuestionById, approveQuestion };

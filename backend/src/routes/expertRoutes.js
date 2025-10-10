@@ -3,6 +3,7 @@ import {
     getApprovedQuestions,
     getFinalizedQuestions,
     getQuestionById,
+    getFinalizedQuestionById,
     approveQuestion,
 } from "../controllers/expertController.js";
 import { protect, authorize } from "../middlewares/authmiddleware.js";
@@ -16,6 +17,7 @@ router.use(protect, authorize("expert"));
 router.get("/questions", getApprovedQuestions);
 router.get("/questions/finalized", getFinalizedQuestions);
 router.get("/questions/:id", getQuestionById);
+router.get("/finalized-questions/:id", getFinalizedQuestionById);
 router.post("/questions/:id/approve", upload.fields([
     { name: 'questionImage', maxCount: 1 },
     { name: 'explanationImage', maxCount: 1 },

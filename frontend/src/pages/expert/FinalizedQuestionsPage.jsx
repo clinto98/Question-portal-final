@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { host } from "../../utils/APIRoutes";
 import axios from "axios";
@@ -8,6 +9,8 @@ export default function FinalizedQuestionsPage() {
     const [questions, setQuestions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [filterCourse, setFilterCourse] = useState("All");
+    const [filterSubject, setFilterSubject] = useState("All");
 
     useEffect(() => {
         const fetchQuestions = async () => {
@@ -27,15 +30,38 @@ export default function FinalizedQuestionsPage() {
         fetchQuestions();
     }, [token]);
 
+    const courses = ["All", ...new Set(questions.map(q => q.course?.title).filter(Boolean))];
+    const subjects = ["All", ...new Set(questions.map(q => q.subject).filter(Boolean))];
+
+    const filteredQuestions = questions.filter(q => {
+        const matchesCourse = filterCourse === "All" || q.course?.title === filterCourse;
+        const matchesSubject = filterSubject === "All" || q.subject === filterSubject;
+        return matchesCourse && matchesSubject;
+    });
+
     return (
         <div className="bg-white rounded-lg shadow-md p-6">
             <h1 className="text-2xl font-bold text-gray-800 mb-4">Finalized Questions</h1>
+            <div className="flex space-x-4 mb-4">
+                <div>
+                    <label htmlFor="course-filter" className="block text-sm font-medium text-gray-700">Course</label>
+                    <select id="course-filter" value={filterCourse} onChange={e => setFilterCourse(e.target.value)} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                        {courses.map(course => <option key={course} value={course}>{course}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label htmlFor="subject-filter" className="block text-sm font-medium text-gray-700">Subject</label>
+                    <select id="subject-filter" value={filterSubject} onChange={e => setFilterSubject(e.target.value)} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                        {subjects.map(subject => <option key={subject} value={subject}>{subject}</option>)}
+                    </select>
+                </div>
+            </div>
             {loading ? (
                 <p>Loading questions...</p>
             ) : error ? (
                 <p className="text-red-500">{error}</p>
-            ) : questions.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">You have not finalized any questions yet.</p>
+            ) : filteredQuestions.length === 0 ? (
+                <p className="text-center text-gray-500 py-8">No finalized questions match your criteria.</p>
             ) : (
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
@@ -45,15 +71,19 @@ export default function FinalizedQuestionsPage() {
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {questions.map((q) => (
+                            {filteredQuestions.map((q) => (
                                 <tr key={q._id}>
                                     <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900 truncate w-60">{q.question.text}</div></td>
                                     <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{q.course?.title || "N/A"}</div></td>
                                     <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{q.subject}</div></td>
                                     <td className="px-6 py-4 whitespace-nowrap"><span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Finalised</span></td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <Link to={`/expert/finalized-question/view/${q._id}`} className="text-indigo-600 hover:text-indigo-900">View</Link>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>

@@ -32,9 +32,10 @@ import ViewCoursesPage from "./pages/admin/ViewCoursesPage";
 import EditRejectedQuestion from "./pages/maker/EditRejectedQuestion";
 import MakerDashboard from "./pages/maker/MakerDashboard";
 import CheckerDashboard from "./pages/checker/CheckerDashboard";
-import ExpertQuestionDetail from "./pages/expert/QuestionDetailPage.jsx";
+import ExpertEditPage from "./pages/expert/ExpertEditPage.jsx";
 import FinalizeQuestionPage from "./pages/expert/FinalizeQuestionPage.jsx";
 import FinalizedQuestionsPage from "./pages/expert/FinalizedQuestionsPage.jsx";
+import ExpertQuestionDetailPage from "./pages/expert/ExpertQuestionDetailPage.jsx";
 import LoginPage from "./pages/login/LoginPage";
 import { Toaster } from "react-hot-toast";
 import Loader from "./components/Loader";
@@ -140,7 +141,9 @@ export default function App() {
             <Route index element={<Navigate to="finalize" replace />} />
             <Route path="finalize" element={<FinalizeQuestionPage />} />
             <Route path="finalized" element={<FinalizedQuestionsPage />} />
-            <Route path="question/:id" element={<ExpertQuestionDetail />} />
+            <Route path="question/edit/:id" element={<ExpertEditPage />} />
+            <Route path="question/view/:id" element={<ExpertQuestionDetailPage />} />
+            <Route path="finalized-question/view/:id" element={<ExpertQuestionDetailPage />} />
           </Route>
 
           {/* Fallback */}

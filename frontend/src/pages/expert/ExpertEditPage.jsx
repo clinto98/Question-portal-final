@@ -8,6 +8,7 @@ import getCroppedImg from "../../utils/cropImage";
 import ReactCrop, { centerCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import Loader from "../../components/Loader";
+import { FaArrowLeft } from "react-icons/fa";
 
 const initialFormData = {
     course: "",
@@ -337,6 +338,13 @@ export default function ExpertEditPage() {
   return (
     <div className="bg-gray-50 min-h-screen p-4 sm:p-8">
       <div className="max-w-5xl mx-auto p-6 sm:p-8 bg-white rounded-xl shadow-lg relative">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 font-semibold"
+        >
+          <FaArrowLeft />
+          Back
+        </button>
         <h1 className="text-3xl font-bold mb-2 text-gray-800">Finalize Question</h1>
         <p className="text-gray-500 mb-8 border-b pb-4">Review and finalize all details for this question.</p>
         {loading && (<div className="absolute inset-0 bg-white bg-opacity-80 flex justify-center items-center z-40 rounded-xl"><Loader /></div>)}
