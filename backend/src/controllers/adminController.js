@@ -65,8 +65,9 @@ const getAllUsers = async (req, res) => {
     try {
         const makers = await Maker.find().select("-password");
         const checkers = await Checker.find().select("-password");
+        const experts = await Expert.find().select("-password");
 
-        return res.json({ makers, checkers });
+        return res.json({ makers, checkers, experts });
     } catch (err) {
         console.error("Admin getAllUsers error:", err);
         return res.status(500).json({ message: "Server error" });
@@ -78,11 +79,23 @@ const toggleUserStatus = async (req, res) => {
     try {
         const { role, id } = req.params;
 
-        if (!["maker", "checker"].includes(role)) {
-            return res.status(400).json({ message: "Role must be 'maker' or 'checker'" });
+        if (!["maker", "checker", "expert"].includes(role)) {
+            return res.status(400).json({ message: "Role must be 'maker', 'checker', or 'expert'" });
         }
 
-        const Model = role === "maker" ? Maker : Checker;
+        let Model;
+        switch (role) {
+            case "maker":
+                Model = Maker;
+                break;
+            case "checker":
+                Model = Checker;
+                break;
+            case "expert":
+                Model = Expert;
+                break;
+        }
+
         const user = await Model.findById(id);
 
         if (!user) return res.status(404).json({ message: "User not found" });

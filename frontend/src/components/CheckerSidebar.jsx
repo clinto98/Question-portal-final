@@ -6,7 +6,7 @@ import {
   HiOutlineCheckCircle, 
   HiOutlineCollection, 
   HiOutlineLogout,
-  HiOutlineChevronDoubleLeft
+  HiChevronDoubleLeft
 } from "react-icons/hi";
 
 const menuItems = [
@@ -55,7 +55,7 @@ export default function CheckerSidebar({ isOpen, setIsOpen }) {
           onClick={() => setIsOpen(!isOpen)}
           className="p-2 rounded-lg hover:bg-slate-700 transition-colors"
         >
-          <HiOutlineChevronDoubleLeft className={`h-6 w-6 transition-transform duration-300 ${!isOpen && 'rotate-180'}`} />
+          <HiChevronDoubleLeft className={`h-6 w-6 transition-transform duration-300 ${!isOpen && 'rotate-180'}`} />
         </button>
       </div>
 

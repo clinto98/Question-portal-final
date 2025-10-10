@@ -1,17 +1,52 @@
 import React, { useState } from "react";
-import { useAuth } from "../../context/AuthContext";
 import { host } from "../../utils/APIRoutes";
 import Loader from "../../components/Loader";
+import toast from "react-hot-toast";
+import { HiEye, HiEyeOff } from "react-icons/hi";
+
+// --- Reusable Form Components ---
+const Input = (props) => (
+  <input
+    className="border border-gray-300 px-3 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-slate-500 transition"
+    {...props}
+  />
+);
+
+const Select = ({ children, ...props }) => (
+  <select
+    className="border border-gray-300 px-3 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-slate-500 transition bg-white"
+    {...props}
+  >
+    {children}
+  </select>
+);
+
+const Button = ({ children, ...props }) => (
+  <button
+    className="bg-slate-700 text-white px-4 py-2.5 rounded-md hover:bg-slate-800 transition font-semibold disabled:bg-slate-400"
+    {...props}
+  >
+    {children}
+  </button>
+);
+
+const FormLabel = ({ children, htmlFor }) => (
+    <label htmlFor={htmlFor} className="block text-sm font-medium text-gray-700 mb-1">
+        {children}
+    </label>
+);
+
+
 function CreateUserPage() {
-  const { user } = useAuth(); // Current admin user
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     role: "maker",
   });
-  const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const token = localStorage.getItem("token");
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -20,7 +55,7 @@ function CreateUserPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.password) {
-      alert("Please fill all fields");
+      toast.error("Please fill all fields");
       return;
     }
 
@@ -31,7 +66,7 @@ function CreateUserPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // send admin JWT
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(formData),
       });
@@ -39,76 +74,91 @@ function CreateUserPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.message || "Failed to create user");
+        toast.error(data.message || "Failed to create user");
       } else {
-        alert(data.message);
-
+        toast.success(data.message);
         // Reset form
         setFormData({ name: "", email: "", password: "", role: "maker" });
       }
     } catch (err) {
       console.error("Error creating user:", err);
-      alert("Failed to create user");
+      toast.error("An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-md relative mt-6">
-      <h1 className="text-2xl font-bold mb-6 text-center">Create New User</h1>
+    <div className="max-w-2xl mx-auto p-8 bg-white rounded-xl shadow-lg relative mt-8 border border-gray-200">
+      <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">Create New User</h1>
 
-      {loading && (
-        <Loader />
-      )}
+      {loading && <Loader />}
 
-      <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <input
-            type="text"
-            name="name"
-            placeholder="Name"
-            value={formData.name}
-            onChange={handleInputChange}
-            className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={handleInputChange}
-            className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+      <form className="space-y-6" onSubmit={handleSubmit}>
+        <div>
+            <FormLabel htmlFor="name">Name</FormLabel>
+            <Input
+                id="name"
+                type="text"
+                name="name"
+                placeholder="Enter user's full name"
+                value={formData.name}
+                onChange={handleInputChange}
+            />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleInputChange}
-            className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <select
-            name="role"
-            value={formData.role}
-            onChange={handleInputChange}
-            className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="maker">Maker</option>
-            <option value="checker">Checker</option>
-            <option value="expert">Expert</option>
-          </select>
+        <div>
+            <FormLabel htmlFor="email">Email</FormLabel>
+            <Input
+                id="email"
+                type="email"
+                name="email"
+                placeholder="Enter user's email address"
+                value={formData.email}
+                onChange={handleInputChange}
+            />
         </div>
 
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition mt-4"
-        >
-          Create User
-        </button>
+        <div>
+            <FormLabel htmlFor="password">Password</FormLabel>
+            <div className="relative">
+                <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="Enter a strong password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                />
+                <button 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                >
+                    {showPassword ? <HiEyeOff size={20} /> : <HiEye size={20} />}
+                </button>
+            </div>
+        </div>
+
+        <div>
+            <FormLabel htmlFor="role">Role</FormLabel>
+            <Select
+                id="role"
+                name="role"
+                value={formData.role}
+                onChange={handleInputChange}
+            >
+                <option value="maker">Maker</option>
+                <option value="checker">Checker</option>
+                <option value="expert">Expert</option>
+            </Select>
+        </div>
+
+        <div className="pt-4">
+            <Button type="submit" disabled={loading} className="w-full">
+                {loading ? "Creating..." : "Create User"}
+            </Button>
+        </div>
       </form>
     </div>
   );

@@ -8,8 +8,8 @@ import {
   HiOutlineCollection, 
   HiOutlineClipboardList, 
   HiOutlineLogout,
-  HiOutlineChevronDoubleLeft,
-  HiOutlineDotsVertical
+  HiOutlineDotsVertical,
+  HiOutlineChevronDoubleLeft
 } from "react-icons/hi";
 
 const menuItems = [
