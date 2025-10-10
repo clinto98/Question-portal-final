@@ -7,44 +7,105 @@ import toast from "react-hot-toast";
 import getCroppedImg from "../../utils/cropImage";
 import ReactCrop, { centerCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
-import Loader from "../../components/Loader"; // Import the Loader component
+import Loader from "../../components/Loader";
 
 // Helper to get the correct URL for image previews
 const getImagePreviewUrl = (image) => {
   if (!image) return null;
-  if (image instanceof File) {
-    return URL.createObjectURL(image);
-  }
+  if (image instanceof File) return URL.createObjectURL(image);
   return image;
 };
 
-// --- Sub-Components (These are correct and unchanged) ---
+// --- REDESIGNED UI COMPONENTS ---
 
-const SectionWrapper = ({ title, children }) => (
-  <fieldset className="border border-gray-200 p-6 rounded-lg mb-6">
-    <legend className="text-lg font-semibold px-2 text-gray-700">
-      {title}
-    </legend>
-    <div className="space-y-4">{children}</div>
+const Input = ({ className, ...props }) => (
+  <input
+    className={`border border-gray-300 px-3 py-2 rounded-md w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition disabled:bg-gray-100 disabled:cursor-not-allowed ${className}`}
+    {...props}
+  />
+);
+
+const Select = ({ className, children, ...props }) => (
+  <select
+    className={`border border-gray-300 px-3 py-2 rounded-md w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white ${className}`}
+    {...props}
+  >
+    {children}
+  </select>
+);
+
+const Textarea = ({ className, ...props }) => (
+  <textarea
+    className={`border border-gray-300 px-3 py-2 rounded-md w-full h-28 focus:ring-2 focus:ring-blue-500 transition ${className}`}
+    {...props}
+  />
+);
+
+const Button = ({
+  children,
+  onClick,
+  variant = "primary",
+  disabled,
+  className,
+  ...props
+}) => {
+  const baseStyles =
+    "px-6 py-2.5 rounded-md font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105";
+
+  const variantStyles = {
+    primary: "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
+    secondary: "bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500",
+    danger: "bg-red-500 text-white hover:bg-red-600 focus:ring-red-500",
+    success: "bg-green-600 text-white hover:bg-green-700 focus:ring-green-500",
+    ghost:
+      "bg-transparent text-blue-700 font-semibold text-sm hover:bg-blue-50",
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`${baseStyles} ${variantStyles[variant]} ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
+
+const SectionWrapper = ({ title, children, className }) => (
+  <fieldset
+    className={`border border-gray-200 p-6 rounded-lg mb-8 bg-white ${className}`}
+  >
+    <legend className="text-lg font-semibold px-2 text-gray-800">{title}</legend>
+    <div className="space-y-6">{children}</div>
   </fieldset>
 );
+
+const FormLabel = ({ children, htmlFor }) => (
+  <label
+    htmlFor={htmlFor}
+    className="block text-sm font-medium text-gray-700 mb-1"
+  >
+    {children}
+  </label>
+);
+
+// --- REDESIGNED SUB-COMPONENTS ---
 
 const QuestionPaperDetailsInputs = ({
   formData,
   questionPapers,
   onPaperSelect,
 }) => (
-  <SectionWrapper title="Question Paper Details">
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+  <SectionWrapper title="1. Select Question Paper">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       <div>
-        <label className="block text-sm font-medium text-gray-600 mb-1">
-          Select Question Paper
-        </label>
-        <select
+        <FormLabel>Question Paper</FormLabel>
+        <Select
           name="questionPaper"
           value={formData.questionPaper}
           onChange={onPaperSelect}
-          className="border border-gray-300 px-3 py-2 rounded-md w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white"
         >
           <option value="">None</option>
           {questionPapers.map((paper) => (
@@ -52,63 +113,37 @@ const QuestionPaperDetailsInputs = ({
               {paper.name}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-600 mb-1">
-          Course
-        </label>
-        <input
-          type="text"
-          name="course"
-          value={formData.course}
-          readOnly
-          className="border border-gray-300 px-3 py-2 rounded-md w-full bg-gray-100 cursor-not-allowed"
-        />
+        <FormLabel>Course</FormLabel>
+        <Input type="text" value={formData.course} readOnly disabled />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-600 mb-1">
-          Subject
-        </label>
-        <input
-          type="text"
-          name="subject"
-          value={formData.subject}
-          readOnly
-          className="border border-gray-300 px-3 py-2 rounded-md w-full bg-gray-100 cursor-not-allowed"
-        />
+        <FormLabel>Subject</FormLabel>
+        <Input type="text" value={formData.subject} readOnly disabled />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-600 mb-1">
-          Question Paper Year
-        </label>
-        <input
-          type="text"
-          name="questionPaperYear"
-          value={formData.questionPaperYear}
-          readOnly
-          className="border border-gray-300 px-3 py-2 rounded-md w-full bg-gray-100 cursor-not-allowed"
-        />
+        <FormLabel>Question Paper Year</FormLabel>
+        <Input type="text" value={formData.questionPaperYear} readOnly disabled />
       </div>
     </div>
     <div className="mt-4 flex gap-4">
       {formData.questionPaperFile?.url && (
-        <button
-          type="button"
+        <Button
+          variant="primary"
           onClick={() => window.open(formData.questionPaperFile.url, "_blank")}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition font-semibold"
         >
           View Question Paper
-        </button>
+        </Button>
       )}
       {formData.solutionPaperFile?.url && (
-        <button
-          type="button"
+        <Button
+          variant="primary"
           onClick={() => window.open(formData.solutionPaperFile.url, "_blank")}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition font-semibold"
         >
-          Solution
-        </button>
+          View Solution
+        </Button>
       )}
     </div>
   </SectionWrapper>
@@ -123,18 +158,18 @@ const ContentInputSection = ({
   onFileChange,
   onRemoveImage,
   children,
+  className,
 }) => {
   const fileInputId = `${textName}-file-input`;
 
   return (
-    <SectionWrapper title={label}>
+    <SectionWrapper title={label} className={className}>
       {children}
-      <textarea
+      <Textarea
         name={textName}
         placeholder={`${label} content...`}
         value={textValue}
         onChange={onTextChange}
-        className="border border-gray-300 px-3 py-2 rounded-md w-full h-28 focus:ring-2 focus:ring-blue-500 transition"
       />
       <div className="flex items-center gap-4">
         <input
@@ -182,25 +217,24 @@ const ChoicesSection = ({
   addChoice,
   onRemoveChoiceImage,
 }) => (
-  <SectionWrapper title="Answer Choices">
+  <SectionWrapper title="3. Answer Choices" className="bg-gray-50/50">
     <div className="space-y-4">
       {choices.map((choice, index) => {
         const choiceFileInputId = `choice-image-input-${index}`;
         return (
           <div
             key={index}
-            className="flex items-start gap-4 border p-4 rounded-md bg-gray-50"
+            className="flex items-start gap-4 border p-4 rounded-md bg-white shadow-sm"
           >
             <span className="text-gray-500 font-semibold mt-2.5">
               {index + 1}.
             </span>
             <div className="flex-grow space-y-3">
-              <input
+              <Input
                 type="text"
                 placeholder={`Choice ${index + 1} text`}
                 value={choice.text}
                 onChange={(e) => handleChoiceChange(index, e.target.value)}
-                className="border border-gray-300 px-3 py-2 rounded-md w-full"
               />
               <div className="flex items-center gap-4">
                 <input
@@ -236,25 +270,23 @@ const ChoicesSection = ({
               </div>
             </div>
             {choices.length > 2 && (
-              <button
+              <Button
+                variant="danger"
                 onClick={() => removeChoice(index)}
-                className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 self-center text-sm"
+                className="px-3 py-1 self-center text-sm"
               >
                 Remove
-              </button>
+              </Button>
             )}
           </div>
         );
       })}
     </div>
-    <div className="mt-6 pt-4 border-t">
-      <label
-        htmlFor="correct-answer-select"
-        className="block text-sm font-medium text-gray-700 mb-2"
-      >
+    <div className="mt-6 pt-6 border-t">
+      <FormLabel htmlFor="correct-answer-select">
         Select Correct Answer
-      </label>
-      <select
+      </FormLabel>
+      <Select
         id="correct-answer-select"
         value={correctAnswer}
         onChange={(e) =>
@@ -263,7 +295,7 @@ const ChoicesSection = ({
             correctAnswer: parseInt(e.target.value, 10),
           }))
         }
-        className="border border-gray-300 px-3 py-2 rounded-md w-full sm:w-1/2 focus:ring-2 focus:ring-blue-500"
+        className="sm:w-1/2"
       >
         <option value={-1}>None (No correct answer)</option>
         {choices.map((_, index) => (
@@ -271,14 +303,11 @@ const ChoicesSection = ({
             Option {index + 1}
           </option>
         ))}
-      </select>
+      </Select>
     </div>
-    <button
-      onClick={addChoice}
-      className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 mt-4 font-medium"
-    >
+    <Button variant="success" onClick={addChoice} className="mt-4">
       + Add Another Choice
-    </button>
+    </Button>
   </SectionWrapper>
 );
 
@@ -292,9 +321,7 @@ const ImageUploader = ({
   const fileInputId = `${fieldName}-input`;
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-600 mb-2">
-        {label}
-      </label>
+      <FormLabel>{label}</FormLabel>
       <div className="flex items-center gap-4">
         <input
           id={fileInputId}
@@ -337,7 +364,7 @@ const ReferenceImagesSection = ({
   onFileChange,
   onRemoveImage,
 }) => (
-  <SectionWrapper title="Question Reference Images">
+  <SectionWrapper title="4. Question Reference Images (Optional)">
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <ImageUploader
         label="Reference Image 1"
@@ -355,6 +382,12 @@ const ReferenceImagesSection = ({
       />
     </div>
   </SectionWrapper>
+);
+
+const ActionFooter = ({ children }) => (
+  <div className="flex items-center justify-end gap-4 mt-12 pt-6 border-t-2 border-gray-200">
+    {children}
+  </div>
 );
 
 // This is the fully corrected and working ImageCropModal
@@ -406,18 +439,12 @@ const ImageCropModal = ({
           </div>
         )}
         <div className="mt-6 flex justify-end gap-3">
-          <button
-            onClick={closeModal}
-            className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 font-semibold"
-          >
+          <Button variant="secondary" onClick={closeModal}>
             Cancel
-          </button>
-          <button
-            onClick={applyCrop}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-semibold"
-          >
+          </Button>
+          <Button variant="primary" onClick={applyCrop}>
             Apply Crop
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>
@@ -465,14 +492,11 @@ export default function CreateQuestion() {
     index: null,
   });
 
-  // This state holds the pixel data from the cropper
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
-  // This state holds the actual <img> element to calculate scaling
   const [imgElementForCrop, setImgElementForCrop] = useState(null);
-
   const [loading, setLoading] = useState(false);
 
-  // --- Data Fetching and Handlers (Unchanged and Correct) ---
+  // --- Data Fetching and Handlers (Largely Unchanged) ---
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -645,8 +669,6 @@ export default function CreateQuestion() {
   const closeModal = () =>
     setCropModal({ open: false, src: null, type: "", index: null });
 
-  // --- *** THIS IS THE FIRST MAJOR FIX *** ---
-  // This is the fully corrected applyCrop function with scaling logic.
   const applyCrop = useCallback(async () => {
     if (!croppedAreaPixels || !imgElementForCrop) {
       toast.error("Please make a crop selection.");
@@ -655,11 +677,9 @@ export default function CreateQuestion() {
 
     setLoading(true);
     try {
-      // Calculate the scale factor between the displayed image and the original image
       const scaleX = imgElementForCrop.naturalWidth / imgElementForCrop.width;
       const scaleY = imgElementForCrop.naturalHeight / imgElementForCrop.height;
 
-      // Create a new, corrected crop object based on the scale
       const correctedCrop = {
         x: croppedAreaPixels.x * scaleX,
         y: croppedAreaPixels.y * scaleY,
@@ -667,7 +687,6 @@ export default function CreateQuestion() {
         height: croppedAreaPixels.height * scaleY,
       };
 
-      // Call the utility with the CORRECTED crop data
       const blob = await getCroppedImg(cropModal.src, correctedCrop);
       const croppedFile = new File([blob], "cropped.jpg", {
         type: "image/jpeg",
@@ -705,127 +724,120 @@ export default function CreateQuestion() {
     });
   }, []);
 
- const handleSubmit = useCallback(
-   async (type) => {
-    if (!formData.questionPaper) {
-      toast.error("Please select a question paper.");
-      return;
-    }
+  const handleSubmit = useCallback(
+    async (type) => {
+      if (!formData.questionPaper) {
+        toast.error("Please select a question paper.");
+        return;
+      }
 
-    if (!formData.questionText && !formData.questionImage) {
-      toast.error("Please provide question text or an image.");
-      return;
-    }
+      if (!formData.questionText && !formData.questionImage) {
+        toast.error("Please provide question text or an image.");
+        return;
+      }
 
-     setLoading(true);
-     const toastId = toast.loading(`Submitting question as ${type}...`);
-     try {
-       const formPayload = new FormData();
-       if (formData._id) formPayload.append("_id", formData._id);
+      setLoading(true);
+      const toastId = toast.loading(`Submitting question as ${type}...`);
+      try {
+        const formPayload = new FormData();
+        if (formData._id) formPayload.append("_id", formData._id);
 
-       Object.keys(formData).forEach((key) => {
-         if (
-           ![
-             "choices",
-             "questionImage",
-             "explanationImage",
-             "referenceImage1",
-             "referenceImage2",
-           ].includes(key) &&
-           formData[key] !== null
-         ) {
-           if (key === "questionPaper" && !formData[key]) return;
-           formPayload.append(key, formData[key]);
-         }
-       });
-       formPayload.set("status", type === "Draft" ? "Draft" : "Pending");
+        Object.keys(formData).forEach((key) => {
+          if (
+            ![
+              "choices",
+              "questionImage",
+              "explanationImage",
+              "referenceImage1",
+              "referenceImage2",
+            ].includes(key) &&
+            formData[key] !== null
+          ) {
+            if (key === "questionPaper" && !formData[key]) return;
+            formPayload.append(key, formData[key]);
+          }
+        });
+        formPayload.set("status", type === "Draft" ? "Draft" : "Pending");
 
-       if (formData.questionImage instanceof File)
-         formPayload.append("questionImage", formData.questionImage);
-       if (formData.explanationImage instanceof File)
-         formPayload.append("explanationImage", formData.explanationImage);
-       if (formData.referenceImage1 instanceof File)
-         formPayload.append("referenceImage1", formData.referenceImage1);
-       if (formData.referenceImage2 instanceof File)
-         formPayload.append("referenceImage2", formData.referenceImage2);
+        if (formData.questionImage instanceof File)
+          formPayload.append("questionImage", formData.questionImage);
+        if (formData.explanationImage instanceof File)
+          formPayload.append("explanationImage", formData.explanationImage);
+        if (formData.referenceImage1 instanceof File)
+          formPayload.append("referenceImage1", formData.referenceImage1);
+        if (formData.referenceImage2 instanceof File)
+          formPayload.append("referenceImage2", formData.referenceImage2);
 
-       if (typeof formData.questionImage === "string")
-         formPayload.append("existingQuestionImage", formData.questionImage);
-       if (typeof formData.explanationImage === "string")
-         formPayload.append(
-           "existingExplanationImage",
-           formData.explanationImage
-         );
-       if (typeof formData.referenceImage1 === "string")
-         formPayload.append(
-           "existingReferenceImage1",
-           formData.referenceImage1
-         );
-       if (typeof formData.referenceImage2 === "string")
-         formPayload.append(
-           "existingReferenceImage2",
-           formData.referenceImage2
-         );
+        if (typeof formData.questionImage === "string")
+          formPayload.append("existingQuestionImage", formData.questionImage);
+        if (typeof formData.explanationImage === "string")
+          formPayload.append(
+            "existingExplanationImage",
+            formData.explanationImage
+          );
+        if (typeof formData.referenceImage1 === "string")
+          formPayload.append(
+            "existingReferenceImage1",
+            formData.referenceImage1
+          );
+        if (typeof formData.referenceImage2 === "string")
+          formPayload.append(
+            "existingReferenceImage2",
+            formData.referenceImage2
+          );
 
-       formData.choices.forEach((choice) => {
-         formPayload.append("choicesText[]", choice.text || "");
-         if (choice.image instanceof File) {
-           formPayload.append("choicesImage", choice.image);
-           formPayload.append("hasImage[]", "true");
-           formPayload.append("existingChoiceImages[]", "");
-         } else if (typeof choice.image === "string") {
-           formPayload.append("hasImage[]", "true");
-           formPayload.append("existingChoiceImages[]", choice.image);
-         } else {
-           formPayload.append("hasImage[]", "false");
-           formPayload.append("existingChoiceImages[]", "");
-         }
-       });
+        formData.choices.forEach((choice) => {
+          formPayload.append("choicesText[]", choice.text || "");
+          if (choice.image instanceof File) {
+            formPayload.append("choicesImage", choice.image);
+            formPayload.append("hasImage[]", "true");
+            formPayload.append("existingChoiceImages[]", "");
+          } else if (typeof choice.image === "string") {
+            formPayload.append("hasImage[]", "true");
+            formPayload.append("existingChoiceImages[]", choice.image);
+          } else {
+            formPayload.append("hasImage[]", "false");
+            formPayload.append("existingChoiceImages[]", "");
+          }
+        });
 
-       const token = localStorage.getItem("token");
-       await axios.post(`${host}/api/questions/create`, formPayload, {
-         headers: {
-           Authorization: `Bearer ${token}`,
-           "Content-Type": "multipart/form-data",
-         },
-       });
-       const successMessage = `Question ${
-         type === "Draft" ? "saved as draft" : "submitted"
-       } successfully!`;
+        const token = localStorage.getItem("token");
+        await axios.post(`${host}/api/questions/create`, formPayload, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        const successMessage = `Question ${
+          type === "Draft" ? "saved as draft" : "submitted"
+        } successfully!`;
 
-       toast.success(successMessage, { id: toastId });
-       console.log(
-         `Question ${
-           type === "Draft" ? "saved as draft" : "submitted"
-         } successfully!`
-       );
-       setTimeout(() => {
-         window.location.reload();
-       }, 1500);
-     } catch (err) {
-       console.error("Error submitting question:", err); // The actual error is still logged to the console for debugging.
-
-       // --- UPDATED ---
-       // Show a "success" toast message even if an error occurred.
-       const errorMessage = `Question submission failed!`;
-       toast.error(errorMessage, { id: toastId });
-       // --- END UPDATE ---
-     } finally {
-       setLoading(false);
-     }
-   },
-   [formData, navigate]
- );
+        toast.success(successMessage, { id: toastId });
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } catch (err) {
+        console.error("Error submitting question:", err);
+        const errorMessage = `Question submission failed!`;
+        toast.error(errorMessage, { id: toastId });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [formData, navigate]
+  );
 
   return (
-    <div className="bg-gray-50 min-h-screen p-4 sm:p-8">
-      <div className="max-w-5xl mx-auto p-6 sm:p-8 bg-white rounded-xl shadow-lg relative">
-        <h1 className="text-3xl font-bold mb-2 text-gray-800">
-          {id ? "Edit Question" : "Create New Question"}
-        </h1>
-        <p className="text-gray-500 mb-8 border-b pb-4">
-          Fill in all the details to create a comprehensive question.
-        </p>
+    <div className="bg-gray-100 min-h-screen p-4 sm:p-8">
+      <div className="max-w-5xl mx-auto relative">
+        <div className="p-6 sm:p-8 bg-white rounded-xl shadow-sm border border-gray-200">
+          <h1 className="text-3xl font-bold mb-2 text-gray-800">
+            {id ? "Edit Question" : "Create New Question"}
+          </h1>
+          <p className="text-gray-500 mb-8 border-b pb-4">
+            Fill in all the details to create a comprehensive question.
+          </p>
+        </div>
 
         {loading && (
           <div className="absolute inset-0 bg-white bg-opacity-80 flex justify-center items-center z-40 rounded-xl">
@@ -833,7 +845,10 @@ export default function CreateQuestion() {
           </div>
         )}
 
-        <form onSubmit={(e) => e.preventDefault()}>
+        <form
+          onSubmit={(e) => e.preventDefault()}
+          className="mt-8 space-y-8"
+        >
           <QuestionPaperDetailsInputs
             formData={formData}
             questionPapers={questionPapers}
@@ -841,25 +856,25 @@ export default function CreateQuestion() {
           />
 
           <ContentInputSection
-            label="Question"
+            label="2. Question Details"
             textName="questionText"
             textValue={formData.questionText}
             imageValue={formData.questionImage}
             onTextChange={handleInputChange}
             onFileChange={(e) => handleFileChange(e, "questionImage")}
             onRemoveImage={() => handleRemoveImage("questionImage")}
+            className="bg-gray-50/50"
           >
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-600 mb-1">
-                Question Number
-              </label>
-              <input
+              <FormLabel htmlFor="questionNumber">Question Number</FormLabel>
+              <Input
+                id="questionNumber"
                 type="text"
                 name="questionNumber"
                 placeholder="e.g., 1a, II.3"
                 value={formData.questionNumber}
                 onChange={handleInputChange}
-                className="border border-gray-300 px-3 py-2 rounded-md w-full sm:w-1/2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                className="sm:w-1/2"
               />
             </div>
           </ContentInputSection>
@@ -883,7 +898,7 @@ export default function CreateQuestion() {
           />
 
           <ContentInputSection
-            label="Explanation"
+            label="5. Explanation (Optional)"
             textName="explanation"
             textValue={formData.explanation}
             imageValue={formData.explanationImage}
@@ -892,47 +907,43 @@ export default function CreateQuestion() {
             onRemoveImage={() => handleRemoveImage("explanationImage")}
           />
 
-          <SectionWrapper title="Additional Information">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <SectionWrapper title="6. Additional Information">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  Unit
-                </label>
-                <input
+                <FormLabel htmlFor="unit">Unit</FormLabel>
+                <Input
+                  id="unit"
                   type="text"
                   name="unit"
                   placeholder="Enter unit name..."
                   value={formData.unit}
                   onChange={handleInputChange}
-                  className="border border-gray-300 px-3 py-2 rounded-md w-full focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  Complexity
-                </label>
-                <select
+                <FormLabel htmlFor="complexity">Complexity</FormLabel>
+                <Select
+                  id="complexity"
                   name="complexity"
                   value={formData.complexity}
                   onChange={handleInputChange}
-                  className="border border-gray-300 px-3 py-2 rounded-md w-full focus:ring-2 focus:ring-blue-500"
                 >
                   <option>Easy</option>
                   <option>Medium</option>
                   <option>Hard</option>
-                </select>
+                </Select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
+              <div className="sm:col-span-2">
+                <FormLabel htmlFor="keywords">
                   Keywords (comma-separated)
-                </label>
-                <input
+                </FormLabel>
+                <Input
+                  id="keywords"
                   type="text"
                   name="keywords"
                   placeholder="e.g. algebra, equations"
                   value={formData.keywords}
                   onChange={handleInputChange}
-                  className="border border-gray-300 px-3 py-2 rounded-md w-full focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -952,29 +963,27 @@ export default function CreateQuestion() {
             </div>
           </SectionWrapper>
 
-          <div className="flex items-center justify-end gap-4 mt-8 pt-6 border-t">
-            <button
+          <ActionFooter>
+            <Button
               type="button"
+              variant="secondary"
               onClick={() => handleSubmit("Draft")}
               disabled={loading}
-              className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 transition font-semibold disabled:bg-gray-300"
             >
               Save as Draft
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="primary"
               onClick={() => handleSubmit("Submit")}
               disabled={loading}
-              className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition font-semibold disabled:bg-blue-300"
             >
               Submit for Approval
-            </button>
-          </div>
+            </Button>
+          </ActionFooter>
         </form>
       </div>
 
-      {/* --- *** THIS IS THE SECOND MAJOR FIX *** --- */}
-      {/* We now correctly pass the onImageReady prop and have removed the old, unused props. */}
       {cropModal.open && (
         <ImageCropModal
           modalState={cropModal}
