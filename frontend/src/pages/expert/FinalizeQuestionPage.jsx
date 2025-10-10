@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { Link } from "react-router-dom";
+import Modal from "react-modal";
 import { host } from "../../utils/APIRoutes";
 import axios from "axios";
 
@@ -11,6 +12,8 @@ export default function FinalizeQuestionPage() {
     const [error, setError] = useState(null);
     const [filterCourse, setFilterCourse] = useState("All");
     const [filterSubject, setFilterSubject] = useState("All");
+    const [modalIsOpen, setModalIsOpen] = useState(false);
+    const [selectedImage, setSelectedImage] = useState(null);
 
     useEffect(() => {
         const fetchQuestions = async () => {
@@ -38,6 +41,16 @@ export default function FinalizeQuestionPage() {
         const matchesSubject = filterSubject === "All" || q.subject === filterSubject;
         return matchesCourse && matchesSubject;
     });
+
+    const openModal = (imageUrl) => {
+        setSelectedImage(imageUrl);
+        setModalIsOpen(true);
+    };
+
+    const closeModal = () => {
+        setModalIsOpen(false);
+        setSelectedImage(null);
+    };
 
     return (
         <div className="bg-white rounded-lg shadow-md p-6">
@@ -77,7 +90,19 @@ export default function FinalizeQuestionPage() {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredQuestions.map((q) => (
                                 <tr key={q._id}>
-                                    <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900 truncate w-60">{q.question.text}</div></td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center">
+                                            {q.question.image && (
+                                                <img 
+                                                    src={q.question.image} 
+                                                    alt="Question thumbnail" 
+                                                    className="h-10 w-10 rounded-md object-cover mr-4 cursor-pointer" 
+                                                    onClick={() => openModal(q.question.image)}
+                                                />
+                                            )}
+                                            <div className="text-sm text-gray-900 truncate w-60">{q.question.text || "(Image Question)"}</div>
+                                        </div>
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{q.course?.title || "N/A"}</div></td>
                                     <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{q.subject}</div></td>
                                     <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{q.maker?.name || "N/A"}</div></td>
@@ -90,6 +115,34 @@ export default function FinalizeQuestionPage() {
                     </table>
                 </div>
             )}
+            <Modal
+                isOpen={modalIsOpen}
+                onRequestClose={closeModal}
+                ariaHideApp={false}
+                style={{
+                    overlay: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                        zIndex: 1000
+                    },
+                    content: {
+                        top: '50%',
+                        left: '50%',
+                        right: 'auto',
+                        bottom: 'auto',
+                        marginRight: '-50%',
+                        transform: 'translate(-50%, -50%)',
+                        border: 'none',
+                        background: 'none',
+                        padding: 0,
+                        overflow: 'visible'
+                    }
+                }}
+            >
+                <div className="relative">
+                    <button onClick={closeModal} className="absolute -top-10 -right-10 text-white text-4xl font-bold">&times;</button>
+                    <img src={selectedImage} alt="Enlarged question" className="max-w-screen-lg max-h-screen-lg" />
+                </div>
+            </Modal>
         </div>
     );
 }
