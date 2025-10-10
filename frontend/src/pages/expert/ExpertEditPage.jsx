@@ -345,59 +345,167 @@ export default function ExpertEditPage() {
           <FaArrowLeft />
           Back
         </button>
-        <h1 className="text-3xl font-bold mb-2 text-gray-800">Finalize Question</h1>
-        <p className="text-gray-500 mb-8 border-b pb-4">Review and finalize all details for this question.</p>
-        {loading && (<div className="absolute inset-0 bg-white bg-opacity-80 flex justify-center items-center z-40 rounded-xl"><Loader /></div>)}
+        <h1 className="text-3xl font-bold mb-2 text-gray-800">
+          Finalize Question
+        </h1>
+        <p className="text-gray-500 mb-8 border-b pb-4">
+          Review and finalize all details for this question.
+        </p>
+        {loading && (
+          <div className="absolute inset-0 bg-white bg-opacity-80 flex justify-center items-center z-40 rounded-xl">
+            <Loader />
+          </div>
+        )}
         <form onSubmit={(e) => e.preventDefault()}>
           <QuestionPaperDetailsInputs formData={formData} />
-          <ContentInputSection label="Question" textName="questionText" textValue={formData.questionText} imageValue={formData.questionImage} onTextChange={handleInputChange} onFileChange={(e) => handleFileChange(e, "questionImage")} onRemoveImage={() => handleRemoveImage("questionImage")}>
+          <ContentInputSection
+            label="Question"
+            textName="questionText"
+            textValue={formData.questionText}
+            imageValue={formData.questionImage}
+            onTextChange={handleInputChange}
+            onFileChange={(e) => handleFileChange(e, "questionImage")}
+            onRemoveImage={() => handleRemoveImage("questionImage")}
+          >
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-600 mb-1">Question Number</label>
-              <input type="text" name="questionNumber" placeholder="e.g., 1a, II.3" value={formData.questionNumber} onChange={handleInputChange} className="border border-gray-300 px-3 py-2 rounded-md w-full sm:w-1/2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" />
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                Question Number
+              </label>
+              <input
+                type="text"
+                name="questionNumber"
+                placeholder="e.g., 1a, II.3"
+                value={formData.questionNumber}
+                onChange={handleInputChange}
+                className="border border-gray-300 px-3 py-2 rounded-md w-full sm:w-1/2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+              />
             </div>
           </ContentInputSection>
-          <ChoicesSection choices={formData.choices} correctAnswer={formData.correctAnswer} setFormData={setFormData} handleChoiceChange={handleChoiceChange} handleFileChange={handleFileChange} removeChoice={removeChoice} addChoice={addChoice} onRemoveChoiceImage={handleRemoveChoiceImage} />
-          <ContentInputSection label="Explanation" textName="explanation" textValue={formData.explanation} imageValue={formData.explanationImage} onTextChange={handleInputChange} onFileChange={(e) => handleFileChange(e, "explanationImage")} onRemoveImage={() => handleRemoveImage("explanationImage")} />
+          <ChoicesSection
+            choices={formData.choices}
+            correctAnswer={formData.correctAnswer}
+            setFormData={setFormData}
+            handleChoiceChange={handleChoiceChange}
+            handleFileChange={handleFileChange}
+            removeChoice={removeChoice}
+            addChoice={addChoice}
+            onRemoveChoiceImage={handleRemoveChoiceImage}
+          />
+          <ContentInputSection
+            label="Explanation"
+            textName="explanation"
+            textValue={formData.explanation}
+            imageValue={formData.explanationImage}
+            onTextChange={handleInputChange}
+            onFileChange={(e) => handleFileChange(e, "explanationImage")}
+            onRemoveImage={() => handleRemoveImage("explanationImage")}
+          />
           <SectionWrapper title="Additional Information">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Unit</label>
-                <input type="text" name="unit" placeholder="Enter unit name..." value={formData.unit} onChange={handleInputChange} className="border border-gray-300 px-3 py-2 rounded-md w-full focus:ring-2 focus:ring-purple-500" />
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  Unit
+                </label>
+                <input
+                  type="text"
+                  name="unit"
+                  placeholder="Enter unit name..."
+                  value={formData.unit}
+                  onChange={handleInputChange}
+                  className="border border-gray-300 px-3 py-2 rounded-md w-full focus:ring-2 focus:ring-purple-500"
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Unit No</label>
-                <input type="text" name="unitNo" placeholder="Enter unit number..." value={formData.unitNo} onChange={handleInputChange} className="border border-gray-300 px-3 py-2 rounded-md w-full focus:ring-2 focus:ring-purple-500" />
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  Unit No
+                </label>
+                <input
+                  type="text"
+                  name="unitNo"
+                  placeholder="Enter unit number..."
+                  value={formData.unitNo}
+                  onChange={handleInputChange}
+                  className="border border-gray-300 px-3 py-2 rounded-md w-full focus:ring-2 focus:ring-purple-500"
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Topic</label>
-                <input type="text" name="topic" placeholder="Enter topic..." value={formData.topic} onChange={handleInputChange} className="border border-gray-300 px-3 py-2 rounded-md w-full focus:ring-2 focus:ring-purple-500" />
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  Topic
+                </label>
+                <input
+                  type="text"
+                  name="topic"
+                  placeholder="Enter topic..."
+                  value={formData.topic}
+                  onChange={handleInputChange}
+                  className="border border-gray-300 px-3 py-2 rounded-md w-full focus:ring-2 focus:ring-purple-500"
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Complexity</label>
-                <select name="complexity" value={formData.complexity} onChange={handleInputChange} className="border border-gray-300 px-3 py-2 rounded-md w-full focus:ring-2 focus:ring-purple-500">
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  Complexity
+                </label>
+                <select
+                  name="complexity"
+                  value={formData.complexity}
+                  onChange={handleInputChange}
+                  className="border border-gray-300 px-3 py-2 rounded-md w-full focus:ring-2 focus:ring-purple-500"
+                >
                   <option>Easy</option>
                   <option>Medium</option>
                   <option>Hard</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Keywords (comma-separated)</label>
-                <input type="text" name="keywords" placeholder="e.g. algebra, equations" value={formData.keywords} onChange={handleInputChange} className="border border-gray-300 px-3 py-2 rounded-md w-full focus:ring-2 focus:ring-purple-500" />
-              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                Keywords (comma-separated)
+              </label>
+              <input
+                type="text"
+                name="keywords"
+                placeholder="e.g. algebra, equations"
+                value={formData.keywords}
+                onChange={handleInputChange}
+                className="border border-gray-300 px-3 py-2 rounded-md w-full focus:ring-2 focus:ring-purple-500"
+              />
             </div>
             <div className="mt-4">
               <label className="flex items-center space-x-3 cursor-pointer">
-                <input type="checkbox" name="FrequentlyAsked" checked={formData.FrequentlyAsked} onChange={handleInputChange} className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
-                <span className="text-sm font-medium text-gray-700">Mark as a frequently asked question</span>
+                <input
+                  type="checkbox"
+                  name="FrequentlyAsked"
+                  checked={formData.FrequentlyAsked}
+                  onChange={handleInputChange}
+                  className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Mark as a frequently asked question
+                </span>
               </label>
             </div>
           </SectionWrapper>
           <div className="flex items-center justify-end gap-4 mt-8 pt-6 border-t">
-            <button type="button" onClick={handleSubmit} disabled={loading} className="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 transition font-semibold disabled:bg-purple-300">Save & Finalize</button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={loading}
+              className="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 transition font-semibold disabled:bg-purple-300"
+            >
+              Save & Finalize
+            </button>
           </div>
         </form>
       </div>
-      {cropModal.open && (<ImageCropModal modalState={cropModal} closeModal={closeModal} applyCrop={applyCrop} onCropComplete={onCropComplete} onImageReady={setImgElementForCrop} />)}
+      {cropModal.open && (
+        <ImageCropModal
+          modalState={cropModal}
+          closeModal={closeModal}
+          applyCrop={applyCrop}
+          onCropComplete={onCropComplete}
+          onImageReady={setImgElementForCrop}
+        />
+      )}
     </div>
   );
 }
