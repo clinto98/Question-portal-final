@@ -204,6 +204,7 @@ const approveQuestion = async (req, res) => {
         await newPreviousPaper.save();
 
         // --- Update original question status ---
+        question.finalisedBy = req.user._id;
         question.status = QUESTION_STATUS.FINALISED;
         await question.save();
 

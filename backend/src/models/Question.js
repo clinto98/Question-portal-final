@@ -95,6 +95,10 @@ const questionSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Checker",
         },
+        finalisedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Expert",
+        },
     },
     { timestamps: true }
 );

@@ -73,6 +73,7 @@ export const AuthProvider = ({ children }) => {
 
     if (role === "maker") navigate("/");
     else if (role === "checker") navigate("/");
+    else if (role === "expert") navigate("/login/expert");
     else navigate("/login/admin");
   };
 
