@@ -83,9 +83,6 @@ export default function AdminLogin() {
               >
                 Sign In as Admin
               </button>
-              <p className="text-center text-sm text-gray-500 mt-4">
-                <a href="#" className="hover:underline">Forgot Password?</a>
-              </p>
             </form>
           )}
         </div>

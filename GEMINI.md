@@ -4,10 +4,11 @@
 
 This is a full-stack MERN (MongoDB, Express, React, Node.js) application for creating, managing, and reviewing multiple-choice questions (MCQs). The application is structured as a monorepo with a `frontend` and a `backend`.
 
-The application supports three user roles:
+The application supports four user roles:
 *   **Admin:** Manages users, courses, and can upload PDF documents.
 *   **Maker:** Creates MCQ questions from the available PDF documents.
 *   **Checker:** Reviews and accepts or rejects questions submitted by Makers.
+*   **Expert:** Reviews and approves questions submitted by checkers.
 
 ### Technologies
 
@@ -17,6 +18,10 @@ The application supports three user roles:
     *   MongoDB with Mongoose
     *   JSON Web Tokens (JWT) for authentication
     *   Cloudinary for file storage
+    *   Bcrypt.js for password hashing
+    *   CORS for cross-origin resource sharing
+    *   Dotenv for environment variables
+    *   Multer for file uploads
 
 *   **Frontend:**
     *   React
@@ -24,6 +29,10 @@ The application supports three user roles:
     *   React Router for navigation
     *   Tailwind CSS for styling
     *   Axios for making API requests
+    *   Lottie-react for animations
+    *   Chart.js and Recharts for charts
+    *   React-hot-toast for notifications
+    *   React-icons for icons
 
 ## Building and Running
 
