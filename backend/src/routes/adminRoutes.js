@@ -1,6 +1,6 @@
 import express from "express";
 import { protect, authorize } from "../middlewares/authmiddleware.js";
-import { createUser, getAllUsers, toggleUserStatus ,uploadPdfs ,getAllPdfs , deletePdf , getDashboardStats,createCourse ,getAllCourses} from "../controllers/adminController.js";
+import { createUser, getAllUsers, toggleUserStatus ,uploadPdfs ,getAllPdfs , deletePdf , getDashboardStats,createCourse ,getAllCourses, getUsersByRole, getReport, downloadReport} from "../controllers/adminController.js";
 import multer from "multer";
 
 const router = express.Router();
@@ -15,6 +15,15 @@ router.post("/create-user", createUser);
 
 // Get all users
 router.get("/users", getAllUsers);
+
+// Get users by role
+router.get("/users/:role", getUsersByRole);
+
+// Get report data
+router.get("/report", getReport);
+
+// Download report data
+router.get("/report/download", downloadReport);
 
 // Delete a user
 router.patch("/user/:role/:id/status", toggleUserStatus);

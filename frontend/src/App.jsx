@@ -39,6 +39,7 @@ import ExpertQuestionDetailPage from "./pages/expert/ExpertQuestionDetailPage.js
 import LoginPage from "./pages/login/LoginPage";
 import { Toaster } from "react-hot-toast";
 import Loader from "./components/Loader";
+import ReportPage from "./pages/admin/ReportPage";
 function PrivateRoute({ children, role }) {
   const { user, loading } = useAuth();
 
@@ -94,6 +95,7 @@ export default function App() {
             <Route path="admin-dashboard" element={<AdminDashboard />} />
             <Route path="create-courses" element={<CreateCoursePage />} />
             <Route path="view-courses" element={<ViewCoursesPage />} />
+            <Route path="reports" element={<ReportPage />} />
           </Route>
           <Route
             path="/maker"

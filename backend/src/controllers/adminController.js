@@ -7,6 +7,8 @@ import QuestionPaper from "../models/QuestionPaper.js";
 import Question from "../models/Question.js";
 import Course from '../models/Course.js'; 
 import mongoose from "mongoose";
+import { QUESTION_STATUS } from "../constants/roles.js";
+import xlsx from 'xlsx';
 
 // Admin creates a new Maker, Checker or Expert
 const createUser = async (req, res) => {
@@ -599,4 +601,266 @@ const getAllCourses = async (req, res) => {
     }
 };
 
-export { createUser, getAllUsers, uploadPdfs ,getAllPdfs,deletePdf,getDashboardStats,createCourse,getAllCourses ,toggleUserStatus};
+const getUsersByRole = async (req, res) => {
+    try {
+        const { role } = req.params;
+        let Model;
+
+        if (role === 'maker') {
+            Model = Maker;
+        } else if (role === 'checker') {
+            Model = Checker;
+        } else {
+            return res.status(400).json({ message: "Invalid role specified." });
+        }
+
+        const users = await Model.find().select('_id name');
+        res.json(users);
+    } catch (error) {
+        console.error(`Error fetching ${req.params.role}s:`, error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+const getReport = async (req, res) => {
+    try {
+        const { role, userId, startDate, endDate } = req.query;
+
+        // 1. Validation
+        if (!role || !userId || !startDate || !endDate) {
+            return res.status(400).json({ message: "All filter parameters are required." });
+        }
+
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+
+        // 2. Determine Model and Fields
+        let Model, acceptedField, rejectedField, falseRejectionField;
+        let selectFields;
+        if (role === 'maker') {
+            Model = Maker;
+            acceptedField = 'makeracceptedquestions';
+            rejectedField = 'makerrejectedquestions';
+            selectFields = `${acceptedField} ${rejectedField}`;
+        } else if (role === 'checker') {
+            Model = Checker;
+            acceptedField = 'checkeracceptedquestion';
+            rejectedField = 'checkerrejectedquestion';
+            falseRejectionField = 'checkerfalserejections';
+            selectFields = `${acceptedField} ${rejectedField} ${falseRejectionField}`;
+        } else {
+            return res.status(400).json({ message: "Invalid role specified for report." });
+        }
+
+        // 3. Find the user
+        const user = await Model.findById(userId).select(selectFields);
+        if (!user) {
+            return res.status(404).json({ message: "User not found." });
+        }
+
+        // 4. Collect all actions within the date range
+        const actions = [];
+        const acceptedLogs = user[acceptedField] || [];
+        const rejectedLogs = user[rejectedField] || [];
+        const falseRejectionLogs = (role === 'checker' && user[falseRejectionField]) ? user[falseRejectionField] : [];
+
+        acceptedLogs.forEach(log => {
+            log.actionDates.forEach(date => {
+                if (date >= start && date <= end) {
+                    actions.push({ questionId: log.questionId, status: 'Approved', date });
+                }
+            });
+        });
+
+        rejectedLogs.forEach(log => {
+            log.actionDates.forEach(date => {
+                if (date >= start && date <= end) {
+                    actions.push({ questionId: log.questionId, status: 'Rejected', date });
+                }
+            });
+        });
+
+        falseRejectionLogs.forEach(log => {
+            log.actionDates.forEach(date => {
+                if (date >= start && date <= end) {
+                    actions.push({ questionId: log.questionId, status: 'False Rejection', date });
+                }
+            });
+        });
+
+        if (actions.length === 0) {
+            return res.json([]);
+        }
+
+        // 5. Fetch details for all unique questions involved
+        const uniqueQuestionIds = [...new Set(actions.map(a => a.questionId.toString()))];
+        const questions = await Question.find({ '_id': { $in: uniqueQuestionIds } })
+            .populate('course', 'title')
+            .select('question.text question.image subject course difficulty')
+            .lean(); // Use .lean() for faster, plain JS objects
+
+        const questionMap = new Map(questions.map(q => [q._id.toString(), q]));
+
+        // 6. Combine question details with the specific action
+        const report = actions.map(action => {
+            const questionDetails = questionMap.get(action.questionId.toString());
+            return {
+                ...questionDetails,
+                _id: `${questionDetails._id}-${action.date.toISOString()}`, // Create a unique key for React
+                statusInReport: action.status,
+                actionDate: action.date,
+            };
+        }).sort((a, b) => b.actionDate - a.actionDate); // Sort by most recent action
+
+        res.json(report);
+
+    } catch (error) {
+        console.error("Error generating report:", error);
+        res.status(500).json({ message: "Server error while generating report." });
+    }
+};
+
+const downloadReport = async (req, res) => {
+    try {
+        const { role, userId, startDate, endDate } = req.query;
+
+        // 1. Validation
+        if (!role || !userId || !startDate || !endDate) {
+            return res.status(400).json({ message: "All filter parameters are required." });
+        }
+
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+
+        // 2. Determine Model and Fields
+        let Model, acceptedField, rejectedField, falseRejectionField;
+        let selectFields;
+        if (role === 'maker') {
+            Model = Maker;
+            acceptedField = 'makeracceptedquestions';
+            rejectedField = 'makerrejectedquestions';
+            selectFields = `${acceptedField} ${rejectedField}`;
+        } else if (role === 'checker') {
+            Model = Checker;
+            acceptedField = 'checkeracceptedquestion';
+            rejectedField = 'checkerrejectedquestion';
+            falseRejectionField = 'checkerfalserejections';
+            selectFields = `${acceptedField} ${rejectedField} ${falseRejectionField}`;
+        } else {
+            return res.status(400).json({ message: "Invalid role specified for report." });
+        }
+
+        // 3. Find the user
+        const user = await Model.findById(userId).select(selectFields);
+        if (!user) {
+            return res.status(404).json({ message: "User not found." });
+        }
+
+        // 4. Collect all actions within the date range
+        const actions = [];
+        const acceptedLogs = user[acceptedField] || [];
+        const rejectedLogs = user[rejectedField] || [];
+        const falseRejectionLogs = (role === 'checker' && user[falseRejectionField]) ? user[falseRejectionField] : [];
+
+        acceptedLogs.forEach(log => {
+            log.actionDates.forEach(date => {
+                if (date >= start && date <= end) {
+                    actions.push({ questionId: log.questionId, status: 'Approved', date });
+                }
+            });
+        });
+
+        rejectedLogs.forEach(log => {
+            log.actionDates.forEach(date => {
+                if (date >= start && date <= end) {
+                    actions.push({ questionId: log.questionId, status: 'Rejected', date });
+                }
+            });
+        });
+
+        falseRejectionLogs.forEach(log => {
+            log.actionDates.forEach(date => {
+                if (date >= start && date <= end) {
+                    actions.push({ questionId: log.questionId, status: 'False Rejection', date });
+                }
+            });
+        });
+
+        if (actions.length === 0) {
+            return res.status(404).json({ message: "No data for this period" });
+        }
+
+        // 5. Fetch details for all unique questions involved
+        const uniqueQuestionIds = [...new Set(actions.map(a => a.questionId.toString()))];
+        const questions = await Question.find({ '_id': { $in: uniqueQuestionIds } })
+            .populate('course', 'title')
+            .select('question.text question.image subject course difficulty')
+            .lean();
+
+        const questionMap = new Map(questions.map(q => [q._id.toString(), q]));
+
+        // 6. Combine question details with the specific action and prepare for Excel
+        let approvedCount = 0;
+        let rejectedCount = 0;
+        let falseRejectionCount = 0;
+        let approvedDifficult = 0;
+        let approvedNotDifficult = 0;
+
+        const reportData = actions.map(action => {
+            const questionDetails = questionMap.get(action.questionId.toString());
+            if (action.status === 'Approved') {
+                approvedCount++;
+                if (questionDetails.difficulty === 1) {
+                    approvedDifficult++;
+                } else {
+                    approvedNotDifficult++;
+                }
+            }
+            if (action.status === 'Rejected') {
+                rejectedCount++;
+            }
+            if (action.status === 'False Rejection') {
+                falseRejectionCount++;
+            }
+            return {
+                'Question': questionDetails.question?.text || 'N/A',
+                'Question Image URL': questionDetails.question?.image || 'N/A',
+                'Subject': questionDetails.subject,
+                'Course': questionDetails.course?.title || 'N/A',
+                'Difficulty': questionDetails.difficulty,
+                'Action': action.status,
+                'Action Date': new Date(action.date).toLocaleString(),
+            };
+        });
+
+        // 7. Create Excel Workbook and Worksheet
+        const wb = xlsx.utils.book_new();
+        const ws = xlsx.utils.json_to_sheet(reportData);
+
+        // 8. Add summary to the worksheet
+        xlsx.utils.sheet_add_aoa(ws, [[]], { origin: -1 }); // Add a blank row for spacing
+        xlsx.utils.sheet_add_aoa(ws, [['Summary']], { origin: -1 });
+        xlsx.utils.sheet_add_aoa(ws, [['Total Approved', approvedCount]], { origin: -1 });
+        xlsx.utils.sheet_add_aoa(ws, [['Approved - Difficult (1)', approvedDifficult]], { origin: -1 });
+        xlsx.utils.sheet_add_aoa(ws, [['Approved - Not Difficult (0)', approvedNotDifficult]], { origin: -1 });
+        xlsx.utils.sheet_add_aoa(ws, [['Total Rejected', rejectedCount]], { origin: -1 });
+        xlsx.utils.sheet_add_aoa(ws, [['Total False Rejections', falseRejectionCount]], { origin: -1 });
+        xlsx.utils.sheet_add_aoa(ws, [['Rewards', 0]], { origin: -1 });
+
+        xlsx.utils.book_append_sheet(wb, ws, "Report");
+
+        // 9. Send the file to the client
+        const buffer = xlsx.write(wb, { bookType: 'xlsx', type: 'buffer' });
+        res.setHeader('Content-Disposition', 'attachment; filename=report.xlsx');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(buffer);
+
+    } catch (error) {
+        console.error("Error generating report for download:", error);
+        res.status(500).json({ message: "Server error while generating report." });
+    }
+};
+
+export { createUser, getAllUsers, uploadPdfs ,getAllPdfs,deletePdf,getDashboardStats,createCourse,getAllCourses ,toggleUserStatus, getUsersByRole, getReport, downloadReport};

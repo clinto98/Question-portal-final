@@ -8,6 +8,7 @@ import {
   FiFileText,
   FiBookmark,
   FiBookOpen,
+  FiClipboard, // Added for Reports page
   FiLogOut,
 } from "react-icons/fi";
 import { HiChevronDoubleLeft } from "react-icons/hi";
@@ -20,6 +21,7 @@ const menuItems = [
   { name: "Question Papers", path: "/admin/list-pdf", icon: FiFileText },
   { name: "Create Course", path: "/admin/create-courses", icon: FiBookmark },
   { name: "View Courses", path: "/admin/view-courses", icon: FiBookOpen },
+  { name: "Reports", path: "/admin/reports", icon: FiClipboard },
 ];
 
 const NavItem = ({ item, isOpen }) => {
