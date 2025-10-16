@@ -2,13 +2,14 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { host } from "../../utils/APIRoutes";
 import Loader from "../../components/Loader";
-// --- Main Component ---
+
 export default function ShowQuestionPaper() {
   const [claimedPapers, setClaimedPapers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedMaker, setSelectedMaker] = useState("");
+  const [completionStatus, setCompletionStatus] = useState("all");
 
-  // Fetch all claimed PDFs on component mount
   useEffect(() => {
     const fetchClaimedPdfs = async () => {
       try {
@@ -28,10 +29,24 @@ export default function ShowQuestionPaper() {
     fetchClaimedPdfs();
   }, []);
 
-  // Client-side search filtering based on paper name
-  const filteredPapers = claimedPapers.filter((paper) =>
-    paper.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const makers = [...new Set(claimedPapers.map((paper) => paper.usedBy?.name).filter(Boolean))];
+
+  const filteredPapers = claimedPapers
+    .filter((paper) =>
+      paper.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .filter((paper) =>
+      selectedMaker ? paper.usedBy?.name === selectedMaker : true
+    )
+    .filter((paper) => {
+      if (completionStatus === "completed") {
+        return paper.approvedQuestionCount === paper.numberOfQuestions;
+      }
+      if (completionStatus === "inProgress") {
+        return paper.approvedQuestionCount < paper.numberOfQuestions;
+      }
+      return true;
+    });
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -43,7 +58,7 @@ export default function ShowQuestionPaper() {
           This page lists all question papers that are currently claimed and
           being worked on by makers.
         </p>
-        <div className="mt-6">
+        <div className="mt-6 flex gap-4">
           <input
             type="text"
             placeholder="Search by paper name..."
@@ -51,10 +66,31 @@ export default function ShowQuestionPaper() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="border border-gray-300 rounded-md px-4 py-2 w-full max-w-md focus:ring-2 focus:ring-blue-500"
           />
+          <select
+            value={selectedMaker}
+            onChange={(e) => setSelectedMaker(e.target.value)}
+            className="border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Makers</option>
+            {makers.map((maker) => (
+              <option key={maker} value={maker}>
+                {maker}
+              </option>
+            ))}
+          </select>
+          <select
+            value={completionStatus}
+            onChange={(e) => setCompletionStatus(e.target.value)}
+            className="border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All</option>
+            <option value="completed">Completed</option>
+            <option value="inProgress">In Progress</option>
+          </select>
         </div>
       </div>
 
-      {loading ? <Loader />: (
+      {loading ? <Loader /> : (
         <div className="bg-white shadow-md rounded-lg overflow-x-auto">
           <table className="w-full text-sm text-left text-gray-600">
             <thead className="text-xs text-gray-700 uppercase bg-gray-100">
@@ -62,6 +98,7 @@ export default function ShowQuestionPaper() {
                 <th className="p-4">Paper Name</th>
                 <th className="p-4">Claimed By (Maker)</th>
                 <th className="p-4">Claimed Date</th>
+                <th className="p-4 text-center">Progress</th>
                 <th className="p-4 text-center">View Files</th>
               </tr>
             </thead>
@@ -80,7 +117,9 @@ export default function ShowQuestionPaper() {
                   <td className="p-4">
                     {new Date(paper.updatedAt).toLocaleDateString()}
                   </td>
-                  {/* --- UPDATED: View Files Column --- */}
+                  <td className="p-4 text-center">
+                    {`${paper.approvedQuestionCount} / ${paper.numberOfQuestions}`}
+                  </td>
                   <td className="p-4">
                     <div className="flex justify-center items-center gap-3">
                       {paper.questionPaperFile?.url ? (
@@ -118,7 +157,7 @@ export default function ShowQuestionPaper() {
               ))}
               {filteredPapers.length === 0 && (
                 <tr>
-                  <td colSpan="4" className="text-center p-10 text-gray-500">
+                  <td colSpan="5" className="text-center p-10 text-gray-500">
                     {claimedPapers.length > 0
                       ? "No papers match your search."
                       : "No papers are currently being worked on."}

@@ -13,10 +13,10 @@ import { protect, authorize } from "../middlewares/authmiddleware.js";
 
 const router = express.Router();
 
-router.get("/questions/pending", getPendingQuestions);
-router.put("/questions/:id/approve",protect, approveQuestion);
-router.put("/questions/:id/reject", protect,rejectQuestion);
-router.put('/questions/approve-bulk', protect, bulkApproveQuestions);
+router.get("/questions/pending", protect, authorize('checker'), getPendingQuestions);
+router.put("/questions/:id/approve",protect, authorize('checker'), approveQuestion);
+router.put("/questions/:id/reject", protect, authorize('checker'), rejectQuestion);
+router.put('/questions/approve-bulk', protect, authorize('checker'), bulkApproveQuestions);
 router.get("/questions/reviewed", protect, authorize('checker'), getReviewedQuestions);
 router.get('/papers/claimed', protect, authorize('checker'), getPapers);
 router.get('/dashboard', protect, authorize('checker'), getCheckerDashboardStats);

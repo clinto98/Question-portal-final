@@ -334,7 +334,6 @@ const getPapers = async (req, res) => {
         const claimedPapers = await QuestionPaper.find({ usedBy: { $ne: null } })
             .populate("usedBy", "name") // CRITICAL: Get the name of the maker who claimed it.
             .sort({ updatedAt: -1 });  // Show the most recently claimed papers first.
-console.log(claimedPapers)
         res.json(claimedPapers);
     } catch (err) {
         console.error("Error fetching claimed papers:", err);
