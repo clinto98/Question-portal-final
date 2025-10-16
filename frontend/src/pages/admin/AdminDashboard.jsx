@@ -202,6 +202,12 @@ export default function AdminDashboard() {
               icon="⏳"
               color="bg-yellow-100"
             />
+            <StatCard
+              title="Draft"
+              value={dashboardData.summary.totalDrafts}
+              icon="📝"
+              color="bg-gray-200"
+            />
           </div>
 
           {/* Charts and Tables */}

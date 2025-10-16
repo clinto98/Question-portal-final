@@ -366,6 +366,7 @@ const getDashboardStats = async (req, res) => {
             totalCreated,
             totalResubmitted,
             currentTotalPending,
+            currentTotalDrafts, // ADDED
         ] = await Promise.all([
             Question.countDocuments({ createdAt: { $gte: startDate, $lte: endDate } }),
             Question.countDocuments({
@@ -373,7 +374,8 @@ const getDashboardStats = async (req, res) => {
                 makerComments: { $exists: true, $ne: "" },
                 updatedAt: { $gte: startDate, $lte: endDate }
             }),
-            Question.countDocuments({ status: 'Pending' })
+            Question.countDocuments({ status: 'Pending' }),
+            Question.countDocuments({ status: 'Draft' }) // ADDED
         ]);
 
         // --- 2. Status Distribution (Unchanged, this is correct) ---
@@ -516,6 +518,7 @@ const getDashboardStats = async (req, res) => {
                 totalRejected,
                 totalResubmitted,
                 totalPending: currentTotalPending, // Correctly named for clarity
+                totalDrafts: currentTotalDrafts, // ADDED
             },
             statusDistribution,
             makerPerformance,

@@ -171,6 +171,12 @@ export default function CheckerDashboard() {
               icon="⏳"
               color="bg-yellow-100 text-yellow-600"
             />
+            <StatCard
+              title="Total Drafts"
+              value={stats.totalDrafts ?? 0}
+              icon="📝"
+              color="bg-gray-200 text-gray-800"
+            />
           </div>
 
           {/* Performance Chart */}

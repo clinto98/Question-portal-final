@@ -352,7 +352,7 @@ const getCheckerDashboardStats = async (req, res) => {
 
         // 1. Total questions (Approved + Pending) - Not timeframe dependent
         const totalQuestions = await Question.countDocuments({
-            status: { $in: ["Approved", "Pending","Finalised","Rejected"] }
+            status: { $in: ["Approved", "Pending","Finalised","Rejected","Draft"] }
         });
 
         // 2. Approved by this checker - Timeframe dependent
@@ -396,6 +396,11 @@ const getCheckerDashboardStats = async (req, res) => {
         // 4. Total pending questions - Not timeframe dependent
         const totalPending = await Question.countDocuments({
             status: "Pending"
+        });
+
+        // 5. Total draft questions - Not timeframe dependent
+        const totalDrafts = await Question.countDocuments({
+            status: "Draft"
         });
 
         // --- Aggregation for Chart Data (remains the same) ---
@@ -454,6 +459,7 @@ const getCheckerDashboardStats = async (req, res) => {
                 totalApproved: approvedByChecker,
                 totalRejected: rejectedByChecker,
                 totalPending: totalPending,
+                totalDrafts: totalDrafts
             },
             chartData: chartDataAggregation[0].chartData,
         });
