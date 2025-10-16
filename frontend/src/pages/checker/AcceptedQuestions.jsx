@@ -3,8 +3,8 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { host } from "../../utils/APIRoutes";
 import Loader from "../../components/Loader";
-// --- Reusable Helper Components ---
 
+// --- Reusable Helper Components ---
 const StatusBadge = ({ status }) => {
   const statusStyles = {
     Approved: "bg-green-100 text-green-800",
@@ -47,7 +47,6 @@ const ImageModal = ({ src, onClose }) => {
 };
 
 // --- Main Component ---
-
 export default function AcceptedQuestions() {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +57,7 @@ export default function AcceptedQuestions() {
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterMaker, setFilterMaker] = useState("All");
   const [filterCourse, setFilterCourse] = useState("All");
+  const [filterQuestionPaper, setFilterQuestionPaper] = useState("All");
 
   useEffect(() => {
     const fetchReviewed = async () => {
@@ -85,14 +85,24 @@ export default function AcceptedQuestions() {
     "All",
     ...new Set(questions.map((q) => q.course?.title).filter(Boolean)),
   ];
+  const questionPapers = [
+    "All",
+    ...new Set(questions.map((q) => q.questionPaper?.name).filter(Boolean)),
+  ];
 
-  // UPDATED: Apply filters to the questions list using populated data
+  // Apply all filters
   const filteredQuestions = questions.filter((q) => {
     const matchesStatus = filterStatus === "All" || q.status === filterStatus;
     const matchesMaker = filterMaker === "All" || q.maker?.name === filterMaker;
     const matchesCourse =
       filterCourse === "All" || q.course?.title === filterCourse;
-    return matchesStatus && matchesMaker && matchesCourse;
+    const matchesQuestionPaper =
+      filterQuestionPaper === "All" ||
+      q.questionPaper?.name === filterQuestionPaper;
+
+    return (
+      matchesStatus && matchesMaker && matchesCourse && matchesQuestionPaper
+    );
   });
 
   return (
@@ -107,7 +117,10 @@ export default function AcceptedQuestions() {
               {filteredQuestions.length} Result(s)
             </span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 pt-4 border-t">
+
+          {/* Filter Section */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-6 pt-4 border-t">
+            {/* Filter by Status */}
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">
                 Filter by Status
@@ -123,6 +136,8 @@ export default function AcceptedQuestions() {
                 <option value="Finalised">Finalised</option>
               </select>
             </div>
+
+            {/* Filter by Maker */}
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">
                 Filter by Maker
@@ -139,6 +154,8 @@ export default function AcceptedQuestions() {
                 ))}
               </select>
             </div>
+
+            {/* Filter by Course */}
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">
                 Filter by Course
@@ -155,10 +172,31 @@ export default function AcceptedQuestions() {
                 ))}
               </select>
             </div>
+
+            {/* ✅ New Filter by Question Paper */}
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                Filter by Question Paper
+              </label>
+              <select
+                value={filterQuestionPaper}
+                onChange={(e) => setFilterQuestionPaper(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 w-full focus:ring-2 focus:ring-blue-500"
+              >
+                {questionPapers.map((name, idx) => (
+                  <option key={idx} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
-        {loading ? <Loader></Loader> : (
+        {/* Table Section */}
+        {loading ? (
+          <Loader />
+        ) : (
           <div className="bg-white shadow-md rounded-lg overflow-x-auto">
             <table className="w-full text-sm text-left text-gray-600">
               <thead className="text-xs text-gray-700 uppercase bg-gray-100">
@@ -173,15 +211,11 @@ export default function AcceptedQuestions() {
               </thead>
               <tbody>
                 {filteredQuestions.map((q) => (
-                  <tr
-                    key={q._id}
-                    className="bg-white border-b hover:bg-gray-50"
-                  >
+                  <tr key={q._id} className="bg-white border-b hover:bg-gray-50">
                     <td className="p-4 font-medium text-gray-900 max-w-xs">
                       <span className="line-clamp-2 block mb-2">
                         {q.question.text || "No text"}
                       </span>
-
                       {q.question.image && (
                         <img
                           src={q.question.image}
@@ -219,6 +253,8 @@ export default function AcceptedQuestions() {
           </div>
         )}
       </div>
+
+      {/* Image Modal */}
       <ImageModal src={imageModalSrc} onClose={() => setImageModalSrc(null)} />
     </div>
   );
