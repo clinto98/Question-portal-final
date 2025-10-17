@@ -179,6 +179,8 @@ export default function CheckerDashboard() {
             />
           </div>
 
+          
+
           {/* Performance Chart */}
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-bold text-gray-800 mb-4">
