@@ -3,7 +3,7 @@ import QuestionPaper from "../models/QuestionPaper.js";
 import mongoose from "mongoose";
 import Checker from "../models/Checker.js";
 import Maker from "../models/Maker.js";
-import { updateTotalAmount } from "../utils/walletHelper.js";
+import { updateWallet } from "../utils/walletHelper.js";
 
 const getPendingQuestions = async (req, res) => {
     try {
@@ -72,7 +72,7 @@ const approveQuestion = async (req, res) => {
         // Handle "False Rejection" Logging
         if (questionToApprove.makerComments === "No corrections required" && originalCheckerId) {
             await updateActionLog(Checker, originalCheckerId, 'checkerfalserejections', questionId, session);
-            await updateTotalAmount(makerId, 2);
+            await updateWallet(makerId, 2, 'credit', 'Compensation for false rejection');
         }
 
         // Update the Question's status
@@ -96,8 +96,8 @@ const approveQuestion = async (req, res) => {
         await updateActionLog(Maker, makerId, 'makeracceptedquestions', questionId, session);
 
         const amount = questionToApprove.difficulty === 1 ? 6 : 3;
-        await updateTotalAmount(makerId, amount);
-        await updateTotalAmount(currentCheckerId, 3);
+        await updateWallet(makerId, amount, 'credit', 'Credit for approved question');
+        await updateWallet(currentCheckerId, 3, 'credit', 'Credit for reviewing a question');
 
         await session.commitTransaction();
         res.json(updatedQuestion);
@@ -157,8 +157,8 @@ const rejectQuestion = async (req, res) => {
         // Log this rejection for the question's maker
         await updateActionLog(Maker, makerId, 'makerrejectedquestions', questionId, session);
 
-        await updateTotalAmount(makerId, -2);
-        await updateTotalAmount(checkerId, 3);
+        await updateWallet(makerId, -2, 'debit', 'Penalty for rejected question');
+        await updateWallet(checkerId, 3, 'credit', 'Credit for reviewing a question');
 
         await session.commitTransaction();
         res.json(question);
@@ -218,7 +218,7 @@ const bulkApproveQuestions = async (req, res) => {
         // 2. Find all valid questions to get their makers, original checkers, and comments
         const questionsToApprove = await Question.find(
             { _id: { $in: ids }, status: "Pending" },
-            'maker checkedBy makerComments questionPaper' // Projection to get all needed fields
+            'maker checkedBy makerComments questionPaper difficulty' // Projection to get all needed fields
         ).session(session);
 
         if (questionsToApprove.length === 0) {
@@ -276,7 +276,20 @@ const bulkApproveQuestions = async (req, res) => {
                 updatePromises.push(
                     updateActionLog(Checker, originalCheckerId, 'checkerfalserejections', questionId, session)
                 );
+                // Compensate maker for false rejection
+                updatePromises.push(
+                    updateWallet(makerId, 2, 'credit', 'Compensation for false rejection', session)
+                );
             }
+
+            // Add wallet updates
+            const amount = question.difficulty === 1 ? 6 : 3;
+            updatePromises.push(
+                updateWallet(makerId, amount, 'credit', 'Credit for approved question', session)
+            );
+            updatePromises.push(
+                updateWallet(currentCheckerId, 3, 'credit', 'Credit for reviewing a question', session)
+            );
         }
 
         // 5. Execute all historical log updates concurrently

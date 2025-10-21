@@ -1,14 +1,20 @@
-import Wallet from "../models/Wallet.js";
+import Wallet from '../models/Wallet.js';
 
-const updateTotalAmount = async (userId, amount) => {
+const updateWallet = async (userId, amount, type, description) => {
     try {
         let wallet = await Wallet.findOne({ user: userId });
 
         if (!wallet) {
-            wallet = new Wallet({ user: userId, totalamount: 0 });
+            wallet = new Wallet({ user: userId });
         }
 
-        wallet.totalamount += amount;
+        if (type === 'credit' || type === 'debit') {
+            wallet.totalamount += amount;
+            wallet.balance += amount;
+        } else if (type === 'payout') {
+            wallet.balance += amount; // amount is negative
+            wallet.transactions.push({ amount: Math.abs(amount), type, description });
+        }
 
         await wallet.save();
     } catch (error) {
@@ -16,4 +22,4 @@ const updateTotalAmount = async (userId, amount) => {
     }
 };
 
-export { updateTotalAmount };
+export { updateWallet };

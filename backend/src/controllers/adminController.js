@@ -9,6 +9,7 @@ import Course from '../models/Course.js';
 import mongoose from "mongoose";
 import { QUESTION_STATUS } from "../constants/roles.js";
 import xlsx from 'xlsx';
+import { updateWallet } from "../utils/walletHelper.js";
 
 // Admin creates a new Maker, Checker or Expert
 const createUser = async (req, res) => {
@@ -906,4 +907,20 @@ const downloadReport = async (req, res) => {
     }
 };
 
-export { createUser, getAllUsers, uploadPdfs ,getAllPdfs,deletePdf,getDashboardStats,createCourse,getAllCourses ,toggleUserStatus, getUsersByRole, getReport, downloadReport};
+const recordPayment = async (req, res) => {
+    const { userId, amount, description } = req.body;
+
+    if (!userId || !amount || !description) {
+        return res.status(400).json({ message: "User ID, amount, and description are required." });
+    }
+
+    try {
+        await updateWallet(userId, -amount, 'payout', description);
+        res.json({ message: "Payment recorded successfully." });
+    } catch (error) {
+        console.error("Error recording payment:", error);
+        res.status(500).json({ message: "Server error while recording payment." });
+    }
+};
+
+export { createUser, getAllUsers, uploadPdfs ,getAllPdfs,deletePdf,getDashboardStats,createCourse,getAllCourses ,toggleUserStatus, getUsersByRole, getReport, downloadReport, recordPayment};
