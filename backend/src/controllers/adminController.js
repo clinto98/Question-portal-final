@@ -764,7 +764,7 @@ const downloadReport = async (req, res) => {
             Model = Maker;
             acceptedField = 'makeracceptedquestions';
             rejectedField = 'makerrejectedquestions';
-            selectFields = `${acceptedField} ${rejectedField}`;
+            selectFields = `${acceptedField} ${rejectedField} name`;
         } else if (role === 'checker') {
             Model = Checker;
             acceptedField = 'checkeracceptedquestion';
@@ -895,7 +895,8 @@ const downloadReport = async (req, res) => {
 
         // 9. Send the file to the client
         const buffer = xlsx.write(wb, { bookType: 'xlsx', type: 'buffer' });
-        res.setHeader('Content-Disposition', 'attachment; filename=report.xlsx');
+        const filename = `${user.name}_${role}.xlsx`;
+        res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.send(buffer);
 

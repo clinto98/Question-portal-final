@@ -3,6 +3,7 @@ import QuestionPaper from "../models/QuestionPaper.js";
 import mongoose from "mongoose";
 import Checker from "../models/Checker.js";
 import Maker from "../models/Maker.js";
+import { updateTotalAmount } from "../utils/walletHelper.js";
 
 const getPendingQuestions = async (req, res) => {
     try {
@@ -50,6 +51,8 @@ const updateActionLog = async (Model, userId, logArrayName, questionId, session)
 };
 
 
+
+
 // Approve a question
 const approveQuestion = async (req, res) => {
     const { id } = req.params;
@@ -69,6 +72,7 @@ const approveQuestion = async (req, res) => {
         // Handle "False Rejection" Logging
         if (questionToApprove.makerComments === "No corrections required" && originalCheckerId) {
             await updateActionLog(Checker, originalCheckerId, 'checkerfalserejections', questionId, session);
+            await updateTotalAmount(makerId, 2);
         }
 
         // Update the Question's status
@@ -90,6 +94,10 @@ const approveQuestion = async (req, res) => {
         // Log this approval for the current checker and the maker
         await updateActionLog(Checker, currentCheckerId, 'checkeracceptedquestion', questionId, session);
         await updateActionLog(Maker, makerId, 'makeracceptedquestions', questionId, session);
+
+        const amount = questionToApprove.difficulty === 1 ? 6 : 3;
+        await updateTotalAmount(makerId, amount);
+        await updateTotalAmount(currentCheckerId, 3);
 
         await session.commitTransaction();
         res.json(updatedQuestion);
@@ -148,6 +156,9 @@ const rejectQuestion = async (req, res) => {
 
         // Log this rejection for the question's maker
         await updateActionLog(Maker, makerId, 'makerrejectedquestions', questionId, session);
+
+        await updateTotalAmount(makerId, -2);
+        await updateTotalAmount(checkerId, 3);
 
         await session.commitTransaction();
         res.json(question);
