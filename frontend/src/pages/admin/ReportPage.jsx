@@ -32,6 +32,8 @@ const ReportPage = () => {
     const [rejectedCount, setRejectedCount] = useState(0);
     const [falseRejectionCount, setFalseRejectionCount] = useState(0);
     const [fullscreenImage, setFullscreenImage] = useState(null);
+    const [makerPricing, setMakerPricing] = useState(0);
+    const [checkerPricing, setCheckerPricing] = useState(0);
     const token = localStorage.getItem("token");
 
     useEffect(() => {
@@ -72,6 +74,7 @@ const ReportPage = () => {
         setRejectedCount(0);
         setFalseRejectionCount(0);
         setQuestions([]);
+        setMakerPricing(0);
 
         try {
             setLoading(true);
@@ -86,15 +89,17 @@ const ReportPage = () => {
                     'Authorization': `Bearer ${token}`,
                 },
             });
-            const data = await res.json();
+            const result = await res.json();
 
             if (res.ok) {
-                setQuestions(data);
+                setQuestions(result.report || []);
+                setMakerPricing(result.makerPricing || 0);
+                setCheckerPricing(result.checkerPricing || 0);
 
                 let approved = 0;
                 let rejected = 0;
                 let falseRejections = 0;
-                data.forEach(action => {
+                (result.report || []).forEach(action => {
                     if (action.statusInReport === 'Approved') {
                         approved++;
                     } else if (action.statusInReport === 'Rejected') {
@@ -107,11 +112,11 @@ const ReportPage = () => {
                 setRejectedCount(rejected);
                 setFalseRejectionCount(falseRejections);
 
-                if (data.length === 0) {
+                if ((result.report || []).length === 0) {
                     toast.success('No actions found for the selected criteria.');
                 }
             } else {
-                throw new Error(data.message || 'Failed to generate report');
+                throw new Error(result.message || 'Failed to generate report');
             }
         } catch (error) {
             toast.error(error.message);
@@ -217,10 +222,24 @@ const ReportPage = () => {
                             <p className="text-2xl font-bold text-yellow-900">{falseRejectionCount}</p>
                         </div>
                     )}
-                    <div className="text-center p-4 bg-gray-200 rounded-lg shadow-sm min-w-[120px]">
-                        <p className="text-sm font-medium text-gray-800">Reward</p>
-                        <p className="text-2xl font-bold text-gray-900">--</p>
-                    </div>
+                    {role === 'maker' && (
+                        <div className="text-center p-4 bg-gray-200 rounded-lg shadow-sm min-w-[120px]">
+                            <p className="text-sm font-medium text-gray-800">Pricing</p>
+                            <p className="text-2xl font-bold text-gray-900">{makerPricing}</p>
+                        </div>
+                    )}
+                    {role === 'checker' && (
+                        <div className="text-center p-4 bg-gray-200 rounded-lg shadow-sm min-w-[120px]">
+                            <p className="text-sm font-medium text-gray-800">Pricing</p>
+                            <p className="text-2xl font-bold text-gray-900">{checkerPricing}</p>
+                        </div>
+                    )}
+                    {role !== 'maker' && role !== 'checker' && (
+                        <div className="text-center p-4 bg-gray-200 rounded-lg shadow-sm min-w-[120px]">
+                            <p className="text-sm font-medium text-gray-800">Pricing</p>
+                            <p className="text-2xl font-bold text-gray-900">--</p>
+                        </div>
+                    )}
                 </div>
             </div>
 

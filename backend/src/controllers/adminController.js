@@ -706,8 +706,28 @@ const getReport = async (req, res) => {
         const questionMap = new Map(questions.map(q => [q._id.toString(), q]));
 
         // 6. Combine question details with the specific action
+        let makerPricing = 0;
+        let checkerPricing = 0;
+
         const report = actions.map(action => {
             const questionDetails = questionMap.get(action.questionId.toString());
+
+            if (role === 'maker') {
+                if (action.status === 'Approved') {
+                    if (questionDetails.difficulty === 0) {
+                        makerPricing += 3;
+                    } else if (questionDetails.difficulty === 1) {
+                        makerPricing += 6;
+                    }
+                } else if (action.status === 'Rejected') {
+                    makerPricing -= 2;
+                }
+            } else if (role === 'checker') {
+                if (action.status === 'Approved' || action.status === 'Rejected') {
+                    checkerPricing += 3;
+                }
+            }
+
             return {
                 ...questionDetails,
                 _id: `${questionDetails._id}-${action.date.toISOString()}`, // Create a unique key for React
@@ -716,7 +736,7 @@ const getReport = async (req, res) => {
             };
         }).sort((a, b) => b.actionDate - a.actionDate); // Sort by most recent action
 
-        res.json(report);
+        res.json({ report, makerPricing, checkerPricing });
 
     } catch (error) {
         console.error("Error generating report:", error);
@@ -810,6 +830,8 @@ const downloadReport = async (req, res) => {
         let falseRejectionCount = 0;
         let approvedDifficult = 0;
         let approvedNotDifficult = 0;
+        let makerPricing = 0;
+        let checkerPricing = 0;
 
         const reportData = actions.map(action => {
             const questionDetails = questionMap.get(action.questionId.toString());
@@ -820,9 +842,25 @@ const downloadReport = async (req, res) => {
                 } else {
                     approvedNotDifficult++;
                 }
+                if (role === 'maker') {
+                    if (questionDetails.difficulty === 0) {
+                        makerPricing += 3;
+                    } else if (questionDetails.difficulty === 1) {
+                        makerPricing += 6;
+                    }
+                }
+                if (role === 'checker') {
+                    checkerPricing += 3;
+                }
             }
             if (action.status === 'Rejected') {
                 rejectedCount++;
+                if (role === 'maker') {
+                    makerPricing -= 2;
+                }
+                if (role === 'checker') {
+                    checkerPricing += 3;
+                }
             }
             if (action.status === 'False Rejection') {
                 falseRejectionCount++;
@@ -850,7 +888,8 @@ const downloadReport = async (req, res) => {
         xlsx.utils.sheet_add_aoa(ws, [['Approved - Not Difficult (0)', approvedNotDifficult]], { origin: -1 });
         xlsx.utils.sheet_add_aoa(ws, [['Total Rejected', rejectedCount]], { origin: -1 });
         xlsx.utils.sheet_add_aoa(ws, [['Total False Rejections', falseRejectionCount]], { origin: -1 });
-        xlsx.utils.sheet_add_aoa(ws, [['Rewards', 0]], { origin: -1 });
+        xlsx.utils.sheet_add_aoa(ws, [['Maker Pricing', makerPricing]], { origin: -1 });
+        xlsx.utils.sheet_add_aoa(ws, [['Checker Pricing', checkerPricing]], { origin: -1 });
 
         xlsx.utils.book_append_sheet(wb, ws, "Report");
 
