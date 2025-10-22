@@ -14,7 +14,10 @@ const QUESTION_STATUS = {
     FINALISED: "Finalised",
 };
 
+const MAKER_PAPER_CLAIM_LIMIT = 2;
+
 export {
     ROLES,
-    QUESTION_STATUS
+    QUESTION_STATUS,
+    MAKER_PAPER_CLAIM_LIMIT
 };

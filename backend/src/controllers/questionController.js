@@ -1,5 +1,5 @@
 import Question from "../models/Question.js";
-import { QUESTION_STATUS } from "../constants/roles.js";
+import { QUESTION_STATUS, MAKER_PAPER_CLAIM_LIMIT } from "../constants/roles.js";
 import cloudinary from "../config/cloudinary.js"; 
 import QuestionPaper from "../models/QuestionPaper.js";
 import Course from "../models/Course.js"
@@ -384,6 +384,21 @@ const claimPaper = async (req, res) => {
     try {
         const paperId = req.params.id;
         const makerId = req.user._id; // The logged-in maker's ID (from the 'protect' middleware)
+
+        // Check maker's claim limit
+        const claimedPapers = await QuestionPaper.find({ usedBy: makerId });
+        let unfinishedPapersCount = 0;
+
+        for (const paper of claimedPapers) {
+            const createdQuestionsCount = await Question.countDocuments({ maker: makerId, questionPaper: paper._id });
+            if (createdQuestionsCount < paper.numberOfQuestions) {
+                unfinishedPapersCount++;
+            }
+        }
+
+        if (unfinishedPapersCount >= MAKER_PAPER_CLAIM_LIMIT) {
+            return res.status(403).json({ message: `You have reached the maximum limit of ${MAKER_PAPER_CLAIM_LIMIT} claimed papers. Please complete your pending papers before claiming new ones.` });
+        }
 
         // This is a critical atomic operation. It finds a document that matches BOTH conditions:
         // 1. The _id matches the one the user clicked.
