@@ -154,6 +154,12 @@ export default function SubmittedQuestions() {
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
+                    Question Number
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Course
                   </th>
                   <th
@@ -190,6 +196,9 @@ export default function SubmittedQuestions() {
                         content={q.question}
                         onImageClick={setImageInView}
                       />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {q.questionNumber}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {q.course?.title || "N/A"}

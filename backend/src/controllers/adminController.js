@@ -961,6 +961,27 @@ const getUserTransactions = async (req, res) => {
     }
 };
 
+const getUserWalletBalance = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        if (!userId) {
+            return res.status(400).json({ message: "User ID is required." });
+        }
+
+        const wallet = await Wallet.findOne({ user: userId });
+
+        if (!wallet) {
+            return res.status(404).json({ message: "Wallet not found for this user." });
+        }
+
+        res.json({ balance: wallet.balance });
+    } catch (error) {
+        console.error("Error fetching user wallet balance:", error);
+        res.status(500).json({ message: "Server error while fetching wallet balance." });
+    }
+};
+
 const getPricing = async (req, res) => {
     try {
         res.status(200).json(req.pricing);
@@ -980,5 +1001,5 @@ const updatePricing = async (req, res) => {
     }
 };
 
-export { createUser, getAllUsers, uploadPdfs ,getAllPdfs,deletePdf,getDashboardStats,createCourse,getAllCourses ,toggleUserStatus, getUsersByRole, getReport, downloadReport, recordPayment, getUserTransactions, getPricing, updatePricing};
+export { createUser, getAllUsers, uploadPdfs ,getAllPdfs,deletePdf,getDashboardStats,createCourse ,getAllCourses,toggleUserStatus, getUsersByRole, getReport, downloadReport, recordPayment, getUserTransactions, getUserWalletBalance, getPricing, updatePricing};
 
