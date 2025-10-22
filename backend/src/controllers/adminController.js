@@ -11,6 +11,8 @@ import mongoose from "mongoose";
 import { QUESTION_STATUS } from "../constants/roles.js";
 import xlsx from 'xlsx';
 import { updateWallet } from "../utils/walletHelper.js";
+import Pricing from '../models/Pricing.js';
+
 
 // Admin creates a new Maker, Checker or Expert
 const createUser = async (req, res) => {
@@ -469,7 +471,7 @@ const getDashboardStats = async (req, res) => {
                                     input: { $ifNull: ['$$this.actionDates', []] },
                                     as: 'actionDate',
                                     cond: { $and: [{ $gte: ['$$actionDate', startDate] }, { $lte: ['$$actionDate', endDate] }] }
-                                }}}]
+                                }}}] 
                             }
                         }
                     },
@@ -482,7 +484,7 @@ const getDashboardStats = async (req, res) => {
                                     input: { $ifNull: ['$$this.actionDates', []] },
                                     as: 'actionDate',
                                     cond: { $and: [{ $gte: ['$$actionDate', startDate] }, { $lte: ['$$actionDate', endDate] }] }
-                                }}}]
+                                }}}] 
                             }
                         }
                     },
@@ -495,7 +497,7 @@ const getDashboardStats = async (req, res) => {
                                     input: { $ifNull: ['$$this.actionDates', []] },
                                     as: 'actionDate',
                                     cond: { $and: [{ $gte: ['$$actionDate', startDate] }, { $lte: ['$$actionDate', endDate] }] }
-                                }}}]
+                                }}}] 
                             }
                         }
                     }
@@ -712,6 +714,7 @@ const getReport = async (req, res) => {
         // 6. Combine question details with the specific action
         let makerPricing = 0;
         let checkerPricing = 0;
+        const PRICING = req.pricing;
 
         const report = actions.map(action => {
             const questionDetails = questionMap.get(action.questionId.toString());
@@ -719,16 +722,16 @@ const getReport = async (req, res) => {
             if (role === 'maker') {
                 if (action.status === 'Approved') {
                     if (questionDetails.difficulty === 0) {
-                        makerPricing += 3;
+                        makerPricing += PRICING.MAKER.APPROVED_DIFFICULTY_0;
                     } else if (questionDetails.difficulty === 1) {
-                        makerPricing += 6;
+                        makerPricing += PRICING.MAKER.APPROVED_DIFFICULTY_1;
                     }
                 } else if (action.status === 'Rejected') {
-                    makerPricing -= 2;
+                    makerPricing += PRICING.MAKER.REJECTED_PENALTY;
                 }
             } else if (role === 'checker') {
                 if (action.status === 'Approved' || action.status === 'Rejected') {
-                    checkerPricing += 3;
+                    checkerPricing += PRICING.CHECKER.REVIEW;
                 }
             }
 
@@ -836,6 +839,7 @@ const downloadReport = async (req, res) => {
         let approvedNotDifficult = 0;
         let makerPricing = 0;
         let checkerPricing = 0;
+        const PRICING = req.pricing;
 
         const reportData = actions.map(action => {
             const questionDetails = questionMap.get(action.questionId.toString());
@@ -848,22 +852,22 @@ const downloadReport = async (req, res) => {
                 }
                 if (role === 'maker') {
                     if (questionDetails.difficulty === 0) {
-                        makerPricing += 3;
+                        makerPricing += PRICING.MAKER.APPROVED_DIFFICULTY_0;
                     } else if (questionDetails.difficulty === 1) {
-                        makerPricing += 6;
+                        makerPricing += PRICING.MAKER.APPROVED_DIFFICULTY_1;
                     }
                 }
                 if (role === 'checker') {
-                    checkerPricing += 3;
+                    checkerPricing += PRICING.CHECKER.REVIEW;
                 }
             }
             if (action.status === 'Rejected') {
                 rejectedCount++;
                 if (role === 'maker') {
-                    makerPricing -= 2;
+                    makerPricing += PRICING.MAKER.REJECTED_PENALTY;
                 }
                 if (role === 'checker') {
-                    checkerPricing += 3;
+                    checkerPricing += PRICING.CHECKER.REVIEW;
                 }
             }
             if (action.status === 'False Rejection') {
@@ -957,4 +961,24 @@ const getUserTransactions = async (req, res) => {
     }
 };
 
-export { createUser, getAllUsers, uploadPdfs ,getAllPdfs,deletePdf,getDashboardStats,createCourse,getAllCourses ,toggleUserStatus, getUsersByRole, getReport, downloadReport, recordPayment, getUserTransactions};
+const getPricing = async (req, res) => {
+    try {
+        res.status(200).json(req.pricing);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching pricing", error: error.message });
+    }
+};
+
+const updatePricing = async (req, res) => {
+    const newPricing = req.body;
+
+    try {
+        const updatedPricing = await Pricing.findOneAndUpdate({}, newPricing, { new: true, upsert: true });
+        res.status(200).json({ message: "Pricing updated successfully.", pricing: updatedPricing });
+    } catch (error) {
+        res.status(500).json({ message: "Error updating pricing", error: error.message });
+    }
+};
+
+export { createUser, getAllUsers, uploadPdfs ,getAllPdfs,deletePdf,getDashboardStats,createCourse,getAllCourses ,toggleUserStatus, getUsersByRole, getReport, downloadReport, recordPayment, getUserTransactions, getPricing, updatePricing};
+

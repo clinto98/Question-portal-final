@@ -57,6 +57,7 @@ const updateActionLog = async (Model, userId, logArrayName, questionId, session)
 const approveQuestion = async (req, res) => {
     const { id } = req.params;
     const currentCheckerId = req.user._id;
+    const PRICING = req.pricing;
 
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -72,7 +73,7 @@ const approveQuestion = async (req, res) => {
         // Handle "False Rejection" Logging
         if (questionToApprove.makerComments === "No corrections required" && originalCheckerId) {
             await updateActionLog(Checker, originalCheckerId, 'checkerfalserejections', questionId, session);
-            await updateWallet(makerId, 2, 'credit', 'Compensation for false rejection');
+            await updateWallet(makerId, PRICING.MAKER.FALSE_REJECTION_COMPENSATION, 'credit', 'Compensation for false rejection');
         }
 
         // Update the Question's status
@@ -95,9 +96,9 @@ const approveQuestion = async (req, res) => {
         await updateActionLog(Checker, currentCheckerId, 'checkeracceptedquestion', questionId, session);
         await updateActionLog(Maker, makerId, 'makeracceptedquestions', questionId, session);
 
-        const amount = questionToApprove.difficulty === 1 ? 6 : 3;
+        const amount = questionToApprove.difficulty === 1 ? PRICING.MAKER.APPROVED_DIFFICULTY_1 : PRICING.MAKER.APPROVED_DIFFICULTY_0;
         await updateWallet(makerId, amount, 'credit', 'Credit for approved question');
-        await updateWallet(currentCheckerId, 3, 'credit', 'Credit for reviewing a question');
+        await updateWallet(currentCheckerId, PRICING.CHECKER.REVIEW, 'credit', 'Credit for reviewing a question');
 
         await session.commitTransaction();
         res.json(updatedQuestion);
@@ -119,6 +120,7 @@ const rejectQuestion = async (req, res) => {
     const { id } = req.params;
     const { comments } = req.body;
     const checkerId = req.user._id;
+    const PRICING = req.pricing;
 
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -157,8 +159,8 @@ const rejectQuestion = async (req, res) => {
         // Log this rejection for the question's maker
         await updateActionLog(Maker, makerId, 'makerrejectedquestions', questionId, session);
 
-        await updateWallet(makerId, -2, 'debit', 'Penalty for rejected question');
-        await updateWallet(checkerId, 3, 'credit', 'Credit for reviewing a question');
+        await updateWallet(makerId, PRICING.MAKER.REJECTED_PENALTY, 'debit', 'Penalty for rejected question');
+        await updateWallet(checkerId, PRICING.CHECKER.REVIEW, 'credit', 'Credit for reviewing a question');
 
         await session.commitTransaction();
         res.json(question);
@@ -205,6 +207,7 @@ const getReviewedQuestions = async (req, res) => {
 const bulkApproveQuestions = async (req, res) => {
     const { ids } = req.body;
     const currentCheckerId = req.user._id;
+    const PRICING = req.pricing;
 
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -278,17 +281,17 @@ const bulkApproveQuestions = async (req, res) => {
                 );
                 // Compensate maker for false rejection
                 updatePromises.push(
-                    updateWallet(makerId, 2, 'credit', 'Compensation for false rejection', session)
+                    updateWallet(makerId, PRICING.MAKER.FALSE_REJECTION_COMPENSATION, 'credit', 'Compensation for false rejection', session)
                 );
             }
 
             // Add wallet updates
-            const amount = question.difficulty === 1 ? 6 : 3;
+            const amount = question.difficulty === 1 ? PRICING.MAKER.APPROVED_DIFFICULTY_1 : PRICING.MAKER.APPROVED_DIFFICULTY_0;
             updatePromises.push(
                 updateWallet(makerId, amount, 'credit', 'Credit for approved question', session)
             );
             updatePromises.push(
-                updateWallet(currentCheckerId, 3, 'credit', 'Credit for reviewing a question', session)
+                updateWallet(currentCheckerId, PRICING.CHECKER.REVIEW, 'credit', 'Credit for reviewing a question', session)
             );
         }
 

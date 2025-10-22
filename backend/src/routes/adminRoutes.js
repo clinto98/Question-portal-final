@@ -1,6 +1,7 @@
 import express from "express";
 import { protect, authorize } from "../middlewares/authmiddleware.js";
-import { createUser, getAllUsers, toggleUserStatus ,uploadPdfs ,getAllPdfs , deletePdf , getDashboardStats,createCourse ,getAllCourses, getUsersByRole, getReport, downloadReport, recordPayment, getUserTransactions} from "../controllers/adminController.js";
+import { loadPricing } from "../middlewares/pricingMiddleware.js";
+import { createUser, getAllUsers, toggleUserStatus ,uploadPdfs ,getAllPdfs , deletePdf , getDashboardStats,createCourse ,getAllCourses, getUsersByRole, getReport, downloadReport, recordPayment, getUserTransactions, getPricing, updatePricing} from "../controllers/adminController.js";
 import multer from "multer";
 
 const router = express.Router();
@@ -9,6 +10,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 // Only admin can access these routes
 router.use(protect);
 router.use(authorize("admin"));
+router.use(loadPricing);
 
 // Create a user
 router.post("/create-user", createUser);
@@ -53,5 +55,9 @@ router.get('/courses', getAllCourses);
 // Payout routes
 router.post('/payout', recordPayment);
 router.get('/payout/transactions/:userId', getUserTransactions);
+
+// Pricing routes
+router.get("/pricing", getPricing);
+router.put("/pricing", updatePricing);
 
 export default router;
