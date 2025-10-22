@@ -8,7 +8,8 @@ import {
   FiFileText,
   FiBookmark,
   FiBookOpen,
-  FiClipboard, // Added for Reports page
+  FiClipboard,
+  FiDollarSign, // Added for Payouts page
   FiLogOut,
 } from "react-icons/fi";
 import { HiChevronDoubleLeft } from "react-icons/hi";
@@ -22,6 +23,7 @@ const menuItems = [
   { name: "Create Course", path: "/admin/create-courses", icon: FiBookmark },
   { name: "View Courses", path: "/admin/view-courses", icon: FiBookOpen },
   { name: "Reports", path: "/admin/reports", icon: FiClipboard },
+  { name: "Payouts", path: "/admin/payouts", icon: FiDollarSign }, // New Payouts menu item
 ];
 
 const NavItem = ({ item, isOpen }) => {

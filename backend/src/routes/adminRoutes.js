@@ -1,6 +1,6 @@
 import express from "express";
 import { protect, authorize } from "../middlewares/authmiddleware.js";
-import { createUser, getAllUsers, toggleUserStatus ,uploadPdfs ,getAllPdfs , deletePdf , getDashboardStats,createCourse ,getAllCourses, getUsersByRole, getReport, downloadReport} from "../controllers/adminController.js";
+import { createUser, getAllUsers, toggleUserStatus ,uploadPdfs ,getAllPdfs , deletePdf , getDashboardStats,createCourse ,getAllCourses, getUsersByRole, getReport, downloadReport, recordPayment, getUserTransactions} from "../controllers/adminController.js";
 import multer from "multer";
 
 const router = express.Router();
@@ -49,5 +49,9 @@ router.get("/dashboard-stats", protect, authorize('admin'), getDashboardStats)
 router.post('/courses', createCourse);
 
 router.get('/courses', getAllCourses);
+
+// Payout routes
+router.post('/payout', recordPayment);
+router.get('/payout/transactions/:userId', getUserTransactions);
 
 export default router;

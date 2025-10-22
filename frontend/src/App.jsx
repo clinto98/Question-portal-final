@@ -40,6 +40,8 @@ import LoginPage from "./pages/login/LoginPage";
 import { Toaster } from "react-hot-toast";
 import Loader from "./components/Loader";
 import ReportPage from "./pages/admin/ReportPage";
+import PayoutPage from "./pages/admin/PayoutPage"; // Import PayoutPage
+
 function PrivateRoute({ children, role }) {
   const { user, loading } = useAuth();
 
@@ -96,6 +98,7 @@ export default function App() {
             <Route path="create-courses" element={<CreateCoursePage />} />
             <Route path="view-courses" element={<ViewCoursesPage />} />
             <Route path="reports" element={<ReportPage />} />
+            <Route path="payouts" element={<PayoutPage />} /> {/* New Payouts Route */}
           </Route>
           <Route
             path="/maker"

@@ -6,6 +6,7 @@ import cloudinary from "../config/cloudinary.js";
 import QuestionPaper from "../models/QuestionPaper.js";
 import Question from "../models/Question.js";
 import Course from '../models/Course.js'; 
+import Wallet from '../models/Wallet.js';
 import mongoose from "mongoose";
 import { QUESTION_STATUS } from "../constants/roles.js";
 import xlsx from 'xlsx';
@@ -614,6 +615,8 @@ const getUsersByRole = async (req, res) => {
             Model = Maker;
         } else if (role === 'checker') {
             Model = Checker;
+        } else if (role === 'expert') {
+            Model = Expert;
         } else {
             return res.status(400).json({ message: "Invalid role specified." });
         }
@@ -915,6 +918,16 @@ const recordPayment = async (req, res) => {
     }
 
     try {
+        const wallet = await Wallet.findOne({ user: userId });
+
+        if (!wallet) {
+            return res.status(404).json({ message: "Wallet not found for this user." });
+        }
+
+        if (wallet.balance < amount) {
+            return res.status(400).json({ message: "Payout amount exceeds available balance." });
+        }
+
         await updateWallet(userId, -amount, 'payout', description);
         res.json({ message: "Payment recorded successfully." });
     } catch (error) {
@@ -923,4 +936,25 @@ const recordPayment = async (req, res) => {
     }
 };
 
-export { createUser, getAllUsers, uploadPdfs ,getAllPdfs,deletePdf,getDashboardStats,createCourse,getAllCourses ,toggleUserStatus, getUsersByRole, getReport, downloadReport, recordPayment};
+const getUserTransactions = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        if (!userId) {
+            return res.status(400).json({ message: "User ID is required." });
+        }
+
+        const wallet = await Wallet.findOne({ user: userId });
+
+        if (!wallet) {
+            return res.status(404).json({ message: "Wallet not found for this user." });
+        }
+
+        res.json({ transactions: wallet.transactions });
+    } catch (error) {
+        console.error("Error fetching user transactions:", error);
+        res.status(500).json({ message: "Server error while fetching transactions." });
+    }
+};
+
+export { createUser, getAllUsers, uploadPdfs ,getAllPdfs,deletePdf,getDashboardStats,createCourse,getAllCourses ,toggleUserStatus, getUsersByRole, getReport, downloadReport, recordPayment, getUserTransactions};
