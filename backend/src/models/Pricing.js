@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const pricingSchema = new mongoose.Schema({
     MAKER: {
-        APPROVED_DIFFICULTY_0: { type: Number, required: true, default: 3 },
+        APPROVED_DIFFICULTY_0: { type: Number, required: true, default: 4 },
         APPROVED_DIFFICULTY_1: { type: Number, required: true, default: 6 },
         REJECTED_PENALTY: { type: Number, required: true, default: -2 },
         FALSE_REJECTION_COMPENSATION: { type: Number, required: true, default: 2 },

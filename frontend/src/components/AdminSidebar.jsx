@@ -11,6 +11,7 @@ import {
   FiClipboard,
   FiDollarSign, // Added for Payouts page
   FiLogOut,
+  FiSettings,
 } from "react-icons/fi";
 import { HiChevronDoubleLeft } from "react-icons/hi";
 
@@ -24,6 +25,7 @@ const menuItems = [
   { name: "View Courses", path: "/admin/view-courses", icon: FiBookOpen },
   { name: "Reports", path: "/admin/reports", icon: FiClipboard },
   { name: "Payouts", path: "/admin/payouts", icon: FiDollarSign }, // New Payouts menu item
+  { name: "Update Pricing", path: "/admin/update-pricing", icon: FiSettings },
 ];
 
 const NavItem = ({ item, isOpen }) => {
