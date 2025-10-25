@@ -485,6 +485,12 @@ export default function QuestionDetailPage() {
                   <DetailItem label="Unit">
                     {question.unit || "N/A"}
                   </DetailItem>
+                  <DetailItem label="Unit Number">
+                    {question.unit_no || "N/A"}
+                  </DetailItem>
+                  <DetailItem label="Topic">
+                    {question.topic || "N/A"}
+                  </DetailItem>
                   <DetailItem label="Complexity">
                     {question.complexity || "N/A"}
                   </DetailItem>

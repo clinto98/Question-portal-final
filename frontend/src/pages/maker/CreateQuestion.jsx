@@ -460,6 +460,8 @@ export default function CreateQuestion() {
     course: "",
     subject: "",
     unit: "",
+    unit_no: "",
+    topic: "",
     questionPaper: "",
     questionPaperYear: "",
     questionPaperFile: null,
@@ -543,6 +545,8 @@ export default function CreateQuestion() {
             course: q.course?.title || "",
             subject: q.subject || "",
             unit: q.unit || "",
+            unit_no: q.unit_no || "",
+            topic: q.topic || "",
             questionPaper: q.questionPaper?._id || "",
             questionPaperYear: q.questionPaperYear || "",
             questionNumber: q.questionNumber || "",
@@ -917,6 +921,28 @@ export default function CreateQuestion() {
                   name="unit"
                   placeholder="Enter unit name..."
                   value={formData.unit}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div>
+                <FormLabel htmlFor="unit_no">Unit Number</FormLabel>
+                <Input
+                  id="unit_no"
+                  type="text"
+                  name="unit_no"
+                  placeholder="Enter unit number..."
+                  value={formData.unit_no}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div>
+                <FormLabel htmlFor="topic">Topic</FormLabel>
+                <Input
+                  id="topic"
+                  type="text"
+                  name="topic"
+                  placeholder="Enter topic..."
+                  value={formData.topic}
                   onChange={handleInputChange}
                 />
               </div>

@@ -204,6 +204,9 @@ export default function AcceptedQuestions() {
                   <th className="p-4">Question</th>
                   <th className="p-4">Maker</th>
                   <th className="p-4">Course</th>
+                  <th className="p-4">Unit</th>
+                  <th className="p-4">Unit No.</th>
+                  <th className="p-4">Topic</th>
                   <th className="p-4">Question Paper</th>
                   <th className="p-4">Status</th>
                   <th className="p-4 text-center">Actions</th>
@@ -227,6 +230,9 @@ export default function AcceptedQuestions() {
                     </td>
                     <td className="p-4">{q.maker?.name || "N/A"}</td>
                     <td className="p-4">{q.course?.title || "N/A"}</td>
+                    <td className="p-4">{q.unit || "N/A"}</td>
+                    <td className="p-4">{q.unit_no || "N/A"}</td>
+                    <td className="p-4">{q.topic || "N/A"}</td>
                     <td className="p-4">{q.questionPaper?.name || "N/A"}</td>
                     <td className="p-4">
                       <StatusBadge status={q.status} />

@@ -388,6 +388,8 @@ export default function EditRejectedQuestion() {
     course: "",
     subject: "",
     unit: "",
+    unit_no: "",
+    topic: "",
     questionPaper: "",
     questionPaperYear: "",
     questionNumber: "",
@@ -457,6 +459,8 @@ export default function EditRejectedQuestion() {
             course: q.course?.title || "",
             subject: q.subject || "",
             unit: q.unit || "",
+            unit_no: q.unit_no || "",
+            topic: q.topic || "",
             questionPaper: q.questionPaper?._id || "",
             questionPaperYear: q.questionPaperYear || "",
             questionNumber: q.questionNumber || "",
@@ -796,6 +800,32 @@ export default function EditRejectedQuestion() {
                   name="unit"
                   placeholder="Enter unit name..."
                   value={formData.unit}
+                  onChange={handleInputChange}
+                  className="border border-gray-300 px-3 py-2 rounded-md w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  Unit Number
+                </label>
+                <input
+                  type="text"
+                  name="unit_no"
+                  placeholder="Enter unit number..."
+                  value={formData.unit_no}
+                  onChange={handleInputChange}
+                  className="border border-gray-300 px-3 py-2 rounded-md w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  Topic
+                </label>
+                <input
+                  type="text"
+                  name="topic"
+                  placeholder="Enter topic..."
+                  value={formData.topic}
                   onChange={handleInputChange}
                   className="border border-gray-300 px-3 py-2 rounded-md w-full"
                 />

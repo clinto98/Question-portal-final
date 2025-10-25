@@ -45,7 +45,8 @@ const createOrUpdateQuestion = async (req, res) => {
             complexity, keywords, status, makerComments, makerCommentIndex,
             existingQuestionImage, existingExplanationImage,
             existingReferenceImage1, existingReferenceImage2,
-            existingChoiceImages, questionPaperYear, choicesText, hasImage
+            existingChoiceImages, questionPaperYear, choicesText, hasImage,
+            unit_no, topic
         } = req.body;
         if (Array.isArray(_id)) {
             console.warn(_id);
@@ -113,6 +114,7 @@ const createOrUpdateQuestion = async (req, res) => {
         // --- Construct Question Data Object ---
         const questionData = {
             course: courseId, unit, subject, chapter, questionPaperYear, questionPaper, questionNumber,
+            unit_no, topic, // Add unit_no and topic here
             question: { text: questionText || "", image: questionImage },
             options: mappedChoices,
             explanation: { text: explanation || "", image: explanationImage },

@@ -34,6 +34,14 @@ const questionSchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
+        unit_no: {
+            type: String,
+            trim: true,
+        },
+        topic: {
+            type: String,
+            trim: true,
+        },
         chapter: String,
 
         questionPaper: {
