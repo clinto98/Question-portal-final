@@ -153,7 +153,6 @@ const uploadPdfs = async (req, res) => {
             questionPaperYear, // ADDED
             numberOfQuestions
         } = req.body;
-        console.log(req.user._id)
         const questionPaperFile = req.files?.questionPaper?.[0];
         const solutionPaperFile = req.files?.solutionPaper?.[0];
 
@@ -173,7 +172,6 @@ const uploadPdfs = async (req, res) => {
         }
 
         const [questionPaperResult, solutionPaperResult] = await Promise.all(uploadPromises);
-        console.log(questionPaperResult.secure_url)
         // 2. Create the new document data object, including the new field
         const newQuestionPaperData = {
             name,

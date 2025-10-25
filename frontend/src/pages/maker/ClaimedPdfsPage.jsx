@@ -30,7 +30,6 @@ export default function ClaimedPdfsPage() {
     };
     fetchClaimedPdfs();
   }, []);
-console.log(claimedPapers)
   // Client-side search filtering
   const filteredPapers = claimedPapers.filter((paper) =>
     paper.name.toLowerCase().includes(searchTerm.toLowerCase())
