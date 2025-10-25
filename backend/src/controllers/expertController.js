@@ -3,7 +3,8 @@ import QuestionPaper from "../models/QuestionPaper.js";
 import PreviousQuestionPaper from "../models/PreviousQuestionPaper.js";
 import { QUESTION_STATUS } from "../constants/roles.js";
 import uploadToCloudinary from "../utils/cloudanaryhelper.js";
-
+import axios from "axios";
+import mongoose from "mongoose";
 // @desc    Get all questions approved by checker
 // @route   GET /api/expert/questions
 // @access  Private/Expert
@@ -133,6 +134,8 @@ const getFinalizedQuestionById = async (req, res) => {
 // @route   POST /api/expert/questions/:id/approve
 // @access  Private/Expert
 const approveQuestion = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
     try {
         const { id } = req.params;
         const {
@@ -205,12 +208,31 @@ const approveQuestion = async (req, res) => {
             course: question.course._id,
         });
 
-        await newPreviousPaper.save();
+        await newPreviousPaper.save({ session });
 
         // --- Update original question status ---
         question.finalisedBy = req.user._id;
         question.status = QUESTION_STATUS.FINALISED;
-        await question.save();
+        await question.save({ session });
+
+        // --- External API Call ---
+        try {
+            const externalApiBody = {
+                ...newPreviousPaper.toObject(),
+            };
+
+            await axios.post('https://api.openmcq.com/api/questionpaper/Questionsreceive', externalApiBody, {
+                headers: {
+                    'X-API-KEY': process.env.OPENMCQ_API_KEY,
+                },
+            });
+        } catch (apiError) {
+            console.error("Failed to send data to external API:", apiError.message);
+            await session.abortTransaction();
+            return res.status(500).json({ success: false, message: "Failed to send data to external API. Please try again." });
+        }
+
+        await session.commitTransaction();
 
         res.status(200).json({ 
             success: true, 
@@ -220,7 +242,10 @@ const approveQuestion = async (req, res) => {
 
     } catch (error) {
         console.error("Error finalizing question:", error);
+        await session.abortTransaction();
         res.status(500).json({ success: false, message: "Server Error" });
+    } finally {
+        session.endSession();
     }
 };
 
