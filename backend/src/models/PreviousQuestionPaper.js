@@ -62,7 +62,11 @@ const previousQuestionSchema = new mongoose.Schema({
     keywords: {
         type: [String],
     },
-    unitNo: {
+    unit: {
+        type: String,
+        trim: true,
+    },
+    unit_no: {
         type: String,
         trim: true,
         required: true,
@@ -133,10 +137,6 @@ const previousPaperSchema = new mongoose.Schema(
             type: String,
             trim: true,
             default: null,
-        },
-        unit: {
-            type: String,
-            required: true,
         },
         course: {
             type: mongoose.Schema.Types.ObjectId,

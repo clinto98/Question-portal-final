@@ -74,7 +74,8 @@ export default function ExpertQuestionDetailPage() {
     keywords,
     questionPaper,
     unit,
-    chapter,
+    unit_no,
+    topic,
   } = question;
 
   const correctAnswerIndex = options.findIndex(option => option.isCorrect);
@@ -105,7 +106,8 @@ export default function ExpertQuestionDetailPage() {
               <DetailItem label="Question Paper" value={questionPaper?.name || "N/A"} />
               <DetailItem label="Complexity" value={complexity || "N/A"} />
               <DetailItem label="Unit" value={unit || "N/A"} />
-              <DetailItem label="Topic" value={chapter || "N/A"} />
+              <DetailItem label="Unit No." value={unit_no || "N/A"} />
+              <DetailItem label="Topic" value={topic || "N/A"} />
             </div>
             {keywords && keywords.length > 0 && (
               <div className="pt-4">

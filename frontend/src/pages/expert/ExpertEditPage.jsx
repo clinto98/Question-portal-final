@@ -18,7 +18,7 @@ const initialFormData = {
     questionPaperFile: null,
     solutionPaperFile: null,
     unit: "",
-    unitNo: "",
+    unit_no: "",
     topic: "",
     questionNumber: "",
     FrequentlyAsked: false,
@@ -187,8 +187,8 @@ export default function ExpertEditPage() {
           questionPaperFile: q.questionPaper?.questionPaperFile || null,
           solutionPaperFile: q.questionPaper?.solutionPaperFile || null,
           unit: q.unit || "",
-          unitNo: "", // New field
-          topic: q.chapter || "", // Pre-populate from chapter
+          unit_no: q.unit_no || "",
+          topic: q.topic || "",
           questionNumber: q.questionNumber || "",
           FrequentlyAsked: q.FrequentlyAsked || false,
           questionText: q.question?.text || "",
@@ -283,7 +283,7 @@ export default function ExpertEditPage() {
     if (!formData.explanation && !formData.explanationImage) return toast.error("An explanation must have either text or an image.");
     if (formData.choices.some(c => !c.text && !c.image)) return toast.error("Each answer choice must have either text or an image.");
     if (formData.correctAnswer === -1) return toast.error("Please select a correct answer.");
-    if (!formData.unitNo || !formData.topic || !formData.complexity) return toast.error("Please fill in Unit No, Topic, and Complexity.");
+    if (!formData.unit_no || !formData.topic || !formData.complexity) return toast.error("Please fill in Unit No, Topic, and Complexity.");
 
     if (!window.confirm("Are you sure you want to finalize this question?")) return;
 
@@ -421,9 +421,9 @@ export default function ExpertEditPage() {
                 </label>
                 <input
                   type="text"
-                  name="unitNo"
+                  name="unit_no"
                   placeholder="Enter unit number..."
-                  value={formData.unitNo}
+                  value={formData.unit_no}
                   onChange={handleInputChange}
                   className="border border-gray-300 px-3 py-2 rounded-md w-full focus:ring-2 focus:ring-purple-500"
                 />

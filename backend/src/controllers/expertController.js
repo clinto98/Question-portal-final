@@ -34,6 +34,9 @@ const getFinalizedQuestions = async (req, res) => {
                 course: paper.course, // Populated course
                 subject: paper.subject,
                 status: QUESTION_STATUS.FINALISED,
+                unit: q.unit,
+                unit_no: q.unit_no,
+                topic: q.topic,
                 maker: { name: "N/A" }, // Maker info is not available in PreviousQuestionPaper
                 createdAt: paper.createdAt, // For sorting
             }))
@@ -113,8 +116,9 @@ const getFinalizedQuestionById = async (req, res) => {
                 name: paper.paperName,
                 course: paper.course,
             },
-            unit: finalizedQuestion.unitNo,
-            chapter: finalizedQuestion.topic,
+            unit: finalizedQuestion.unit,
+            unit_no: finalizedQuestion.unit_no,
+            topic: finalizedQuestion.topic,
         };
 
         res.status(200).json({ success: true, data: responseData });
@@ -134,7 +138,7 @@ const approveQuestion = async (req, res) => {
         const {
             questionText, choicesText, correctAnswer, existingQuestionImage, 
             existingChoiceImages, hasImage, complexity, FrequentlyAsked, 
-            unit, unitNo, topic, keywords, explanation, existingExplanationImage
+            unit, unit_no, topic, keywords, explanation, existingExplanationImage
         } = req.body;
 
         const question = await Question.findById(id).populate("questionPaper").populate("course");
@@ -181,7 +185,8 @@ const approveQuestion = async (req, res) => {
             explanation: explanation || "",
             explanationImageUrl: explanationImage || null,
             keywords: keywords ? keywords.split(",").map(k => k.trim()) : [],
-            unitNo: unitNo,
+            unit: unit,
+            unit_no: unit_no,
             topic: topic,
         };
 
@@ -197,7 +202,6 @@ const approveQuestion = async (req, res) => {
             sourceType: 'PDF',
             questions: [newQuestionPayload],
             notes: null, // Using explanation as notes
-            unit: unit,
             course: question.course._id,
         });
 

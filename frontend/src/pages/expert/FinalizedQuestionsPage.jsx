@@ -83,6 +83,9 @@ export default function FinalizedQuestionsPage() {
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Question</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit No.</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Topic</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -105,6 +108,9 @@ export default function FinalizedQuestionsPage() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{q.course?.title || "N/A"}</div></td>
                                     <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{q.subject}</div></td>
+                                    <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{q.unit || "N/A"}</div></td>
+                                    <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{q.unit_no || "N/A"}</div></td>
+                                    <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{q.topic || "N/A"}</div></td>
                                     <td className="px-6 py-4 whitespace-nowrap"><span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Finalised</span></td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <Link to={`/expert/finalized-question/view/${q._id}`} className="text-indigo-600 hover:text-indigo-900">View</Link>
