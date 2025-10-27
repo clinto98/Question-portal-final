@@ -57,6 +57,7 @@ export default function SubmittedQuestions() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterCourse, setFilterCourse] = useState("All");
+  const [filterQuestionPaper, setFilterQuestionPaper] = useState("All");
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -86,18 +87,25 @@ export default function SubmittedQuestions() {
     ...new Set(questions.map((q) => q.course?.title).filter(Boolean)),
   ];
 
+  const questionPapers = [
+    "All",
+    ...new Set(questions.map((q) => q.questionPaper?.name).filter(Boolean)),
+  ];
+
   const filteredQuestions = questions.filter((q) => {
     const textToSearch = (q.question?.text || "").toLowerCase();
     const matchesSearch = textToSearch.includes(search.toLowerCase().trim());
     const matchesStatus = filterStatus === "All" || q.status === filterStatus;
     const matchesCourse =
       filterCourse === "All" || q.course?.title === filterCourse;
-    return matchesSearch && matchesStatus && matchesCourse;
+    const matchesQuestionPaper =
+      filterQuestionPaper === "All" || q.questionPaper?.name === filterQuestionPaper;
+    return matchesSearch && matchesStatus && matchesCourse && matchesQuestionPaper;
   });
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 bg-gray-50 min-h-screen">
-      <div className="bg-white p-6 rounded-lg shadow-md">
+      <div className="bg-white p-6 rounded-lg shadow-md overflow-x-auto">
         <h1 className="text-3xl font-bold mb-6 text-gray-800">
           My Submitted Questions
         </h1>
@@ -129,6 +137,17 @@ export default function SubmittedQuestions() {
             {courses.map((c, idx) => (
               <option key={idx} value={c}>
                 {c === "All" ? "All Courses" : c}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filterQuestionPaper}
+            onChange={(e) => setFilterQuestionPaper(e.target.value)}
+            className="border px-3 py-2 rounded-md"
+          >
+            {questionPapers.map((p, idx) => (
+              <option key={idx} value={p}>
+                {p === "All" ? "All Question Papers" : p}
               </option>
             ))}
           </select>
