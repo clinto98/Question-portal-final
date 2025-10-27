@@ -110,7 +110,7 @@ const QuestionPaperDetailsInputs = ({
           <option value="">None</option>
           {questionPapers.map((paper) => (
             <option key={paper._id} value={paper._id}>
-              {paper.name}
+              {paper.name} ({paper.createdQuestionsCount} / {paper.numberOfQuestions})
             </option>
           ))}
         </Select>
@@ -511,7 +511,7 @@ export default function CreateQuestion() {
           }
         );
         const incompletePapers = res.data.filter(
-          (paper) => paper.approvedQuestionCount < paper.numberOfQuestions
+          (paper) => paper.createdQuestionsCount < paper.numberOfQuestions
         );
         setQuestionPapers(incompletePapers);
       } catch (err) {

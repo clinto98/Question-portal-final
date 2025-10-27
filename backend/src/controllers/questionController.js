@@ -441,9 +441,23 @@ const getClaimedPapers = async (req, res) => {
         const claimedPapers = await QuestionPaper.find({ usedBy: makerId })
             .populate("uploadedBy", "name") // Optional: gets the name of the admin who uploaded it
             .populate("course", "title") // Also populate the course title
-            .sort({ updatedAt: -1 });      // Shows the most recently claimed/updated papers first
+            .sort({ updatedAt: -1 })
+            .lean();      // Shows the most recently claimed/updated papers first
 
-        res.json(claimedPapers);
+        const papersWithCount = await Promise.all(
+            claimedPapers.map(async (paper) => {
+                const count = await Question.countDocuments({
+                    maker: makerId,
+                    questionPaper: paper._id,
+                });
+                return {
+                    ...paper,
+                    createdQuestionsCount: count,
+                };
+            })
+        );
+
+        res.json(papersWithCount);
 
     } catch (err) {
         console.error("Error fetching claimed papers:", err);
@@ -486,12 +500,23 @@ const getClaimedPapersByMaker = async (req, res) => {
             // --- ADDED SORTING ---
             // Sort by the 'createdAt' field in descending order (-1) to get the newest first.
             // This assumes your QuestionPaper schema has timestamps enabled (`{ timestamps: true }`).
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean();
 
-        // Note: .find() returns an empty array ([]) if no documents are found,
-        // so a 404 check here is not typically necessary. The client will receive an empty array.
+        const papersWithCount = await Promise.all(
+            claimedPapers.map(async (paper) => {
+                const count = await Question.countDocuments({
+                    maker: makerId,
+                    questionPaper: paper._id,
+                });
+                return {
+                    ...paper,
+                    createdQuestionsCount: count,
+                };
+            })
+        );
 
-        res.status(200).json(claimedPapers);
+        res.status(200).json(papersWithCount);
     } catch (err) {
         console.error("Error fetching claimed question papers:", err);
         res.status(500).json({ message: "Server error while fetching papers", error: err.message });

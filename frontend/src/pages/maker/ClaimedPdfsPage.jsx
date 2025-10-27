@@ -104,7 +104,7 @@ export default function ClaimedPdfsPage() {
                     {paper.questionPaperYear || "N/A"}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    {`${paper.approvedQuestionCount} / ${paper.numberOfQuestions}`}
+                    {`${paper.createdQuestionsCount} / ${paper.numberOfQuestions}`}
                   </td>
                   <td className="px-6 py-4 text-center">
                     {paper.questionPaperFile ? (
