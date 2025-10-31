@@ -219,17 +219,39 @@ const uploadPdfs = async (req, res) => {
 
 const getAllPdfs = async (req, res) => {
     try {
-        // Fetch all documents from the QuestionPaper collection.
-        const allPapers = await QuestionPaper.find({})
+        const { status } = req.query;
+
+        let filter = {};
+        if (status === 'claimed') {
+            filter.usedBy = { $ne: null };
+        } else if (status === 'available') {
+            filter.usedBy = { $eq: null };
+        }
+
+        // Perform count queries
+        const allCount = await QuestionPaper.countDocuments({});
+        const claimedCount = await QuestionPaper.countDocuments({ usedBy: { $ne: null } });
+        const availableCount = await QuestionPaper.countDocuments({ usedBy: { $eq: null } });
+
+        // Fetch documents from the QuestionPaper collection based on the filter.
+        const allPapers = await QuestionPaper.find(filter)
             // Populate 'usedBy' to get the maker's name. If null, it remains null.
             .populate('usedBy', 'name')
-            // NEW: Also populate the 'course' field to get the course's title.
+            // Also populate the 'course' field to get the course's title.
             .populate('course', 'title')
             // Sort by newest first for a logical default order.
             .sort({ createdAt: -1 });
 
-        // The response will now include both the maker's name and the course title.
-        res.json({ success: true, files: allPapers });
+        // The response will now include the counts and the filtered list of papers.
+        res.json({
+            success: true,
+            files: allPapers,
+            counts: {
+                all: allCount,
+                claimed: claimedCount,
+                available: availableCount
+            }
+        });
 
     } catch (err) {
         console.error("Error fetching all PDFs:", err);

@@ -147,12 +147,12 @@ export default function CheckerDashboard() {
         <>
           {/* Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard
+            {/* <StatCard
               title="Total Questions"
               value={stats.totalQuestions ?? 0}
               icon="📚"
               color="bg-gray-100 text-gray-600"
-            />
+            /> */}
             <StatCard
               title="Approved"
               value={stats.totalApproved ?? 0}

@@ -127,15 +127,26 @@ export default function PdfListPage() {
   const [filterCourse, setFilterCourse] = useState("All");
   const [filterSubject, setFilterSubject] = useState("All");
   const [filterYear, setFilterYear] = useState("All"); // ADDED: State for year filter
+  const [filterStatus, setFilterStatus] = useState("all"); // 'all', 'claimed', 'available'
+  const [counts, setCounts] = useState({ all: 0, claimed: 0, available: 0 });
 
   const fetchPdfs = async () => {
+    setLoading(true);
     try {
       const token = localStorage.getItem("token");
+      const params = {};
+      if (filterStatus !== 'all') {
+        params.status = filterStatus;
+      }
+
       const res = await axios.get(`${host}/api/admin/pdfs`, {
         headers: { Authorization: `Bearer ${token}` },
+        params,
       });
+
       if (res.data.success) {
         setPdfs(res.data.files);
+        setCounts(res.data.counts);
       }
     } catch (err) {
       console.error("Error fetching PDFs:", err);
@@ -151,7 +162,7 @@ export default function PdfListPage() {
 
   useEffect(() => {
     fetchPdfs();
-  }, []);
+  }, [filterStatus]);
 
   const proceedWithDelete = async (id) => {
     try {
@@ -273,6 +284,26 @@ export default function PdfListPage() {
               ))}
             </select>
           </div>
+          <div className="flex space-x-2 mt-4">
+            <button
+              onClick={() => setFilterStatus('all')}
+              className={`px-4 py-2 rounded-md text-sm font-medium ${filterStatus === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+            >
+              All ({counts.all})
+            </button>
+            <button
+              onClick={() => setFilterStatus('claimed')}
+              className={`px-4 py-2 rounded-md text-sm font-medium ${filterStatus === 'claimed' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+            >
+              Claimed ({counts.claimed})
+            </button>
+            <button
+              onClick={() => setFilterStatus('available')}
+              className={`px-4 py-2 rounded-md text-sm font-medium ${filterStatus === 'available' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+            >
+              Available ({counts.available})
+            </button>
+          </div>
         </div>
 
         {loading ? <Loader />: (
@@ -284,6 +315,7 @@ export default function PdfListPage() {
                   <th className="p-4">Course</th>
                   <th className="p-4">Subject</th>
                   <th className="p-4">Year</th>
+                  <th className="p-4 text-center">Questions</th>
                   <th className="p-4 text-center">Question Paper</th>
                   <th className="p-4 text-center">Solution Paper</th>
                   <th className="p-4">Status</th>
@@ -305,6 +337,7 @@ export default function PdfListPage() {
                     <td className="p-4 text-center">
                       {pdf.questionPaperYear || "N/A"}
                     </td>
+                    <td className="p-4 text-center">{`${pdf.approvedQuestionCount}/${pdf.numberOfQuestions}`}</td>
                     <td className="p-4 text-center">
                       <a
                         href={pdf.questionPaperFile?.url}
@@ -348,7 +381,7 @@ export default function PdfListPage() {
                 ))}
                 {filteredPdfs.length === 0 && (
                   <tr>
-                    <td colSpan="9" className="text-center p-10 text-gray-500">
+                    <td colSpan="10" className="text-center p-10 text-gray-500">
                       No PDFs found matching your criteria.
                     </td>
                   </tr>
