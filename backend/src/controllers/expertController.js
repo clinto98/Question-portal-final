@@ -184,7 +184,7 @@ const approveQuestion = async (req, res) => {
             diagramUrl: questionImage,
             referenceUrl: null,
             FrequentlyAsked: FrequentlyAsked === 'true',
-            difficulty: complexity?.toLowerCase() || 'easy',
+            difficulty: complexity|| 'Easy',
             explanation: explanation || "",
             explanationImageUrl: explanationImage || null,
             keywords: keywords ? keywords.split(",").map(k => k.trim()) : [],

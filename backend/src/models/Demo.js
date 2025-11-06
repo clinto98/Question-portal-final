@@ -20,7 +20,7 @@ optionSchema.pre('validate', function(next) {
     }
 });
 
-const previousQuestionSchema = new mongoose.Schema({
+const demoQuestionSchema = new mongoose.Schema({
     question: {
         type: String,
         trim: true,
@@ -79,7 +79,7 @@ const previousQuestionSchema = new mongoose.Schema({
 });
 
 // Custom validator for the main question and explanation
-previousQuestionSchema.pre('validate', function(next) {
+demoQuestionSchema.pre('validate', function(next) {
     if (!this.question && !this.diagramUrl) {
         return next(new Error('A question must have either text or a diagram URL.'));
     }
@@ -89,7 +89,7 @@ previousQuestionSchema.pre('validate', function(next) {
     next();
 });
 
-const previousPaperSchema = new mongoose.Schema(
+const demoSchema = new mongoose.Schema(
     {
         examYear: {
             type: Number,
@@ -130,7 +130,7 @@ const previousPaperSchema = new mongoose.Schema(
             default: "Manual",
         },
         questions: {
-            type: [previousQuestionSchema],
+            type: [demoQuestionSchema],
             required: true,
         },
         notes: {
@@ -147,4 +147,4 @@ const previousPaperSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-export default mongoose.model("PreviousQuestionPaper", previousPaperSchema);
+export default mongoose.model("Demo", demoSchema);

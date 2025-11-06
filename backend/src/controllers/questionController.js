@@ -46,7 +46,7 @@ const createOrUpdateQuestion = async (req, res) => {
             existingQuestionImage, existingExplanationImage,
             existingReferenceImage1, existingReferenceImage2,
             existingChoiceImages, questionPaperYear, choicesText, hasImage,
-            unit_no, topic
+            unit_no, topic, FrequentlyAsked
         } = req.body;
         if (Array.isArray(_id)) {
             console.warn(_id);
@@ -124,6 +124,7 @@ const createOrUpdateQuestion = async (req, res) => {
             keywords: keywords ? keywords.split(",").map(k => k.trim()) : [],
             status: status || 'Draft',
             makerComments: makerComments || "",
+            FrequentlyAsked: FrequentlyAsked || false,
         };
 
         let question;
