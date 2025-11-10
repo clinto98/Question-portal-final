@@ -7,25 +7,71 @@ import { updateWallet } from "../utils/walletHelper.js";
 
 const getPendingQuestions = async (req, res) => {
     try {
-        // Find all questions with the status "Pending".
-        const questions = await Question.find({ status: "Pending" })
-            // --- ADDED SORTING ---
-            // Sort by the 'createdAt' field in descending order (-1) to get the newest first.
-            // Mongoose automatically adds a `createdAt` timestamp by default with `timestamps: true` in the schema.
-            .sort({ createdAt: -1 })
+        const { search } = req.query;
 
-            // Chain multiple .populate() calls to retrieve related data.
+        let aggregation = [
+            { $match: { status: "Pending" } },
+            {
+                $lookup: {
+                    from: "questionpapers",
+                    localField: "questionPaper",
+                    foreignField: "_id",
+                    as: "questionPaperInfo"
+                }
+            },
+            { $unwind: { path: "$questionPaperInfo", preserveNullAndEmptyArrays: true } },
+        ];
 
-            // Populate the 'maker' field with the user's name and email.
-            .populate("maker", "name email")
+        if (search) {
+            aggregation.push({
+                $match: {
+                    $or: [
+                        { 'question.text': { $regex: search, $options: 'i' } },
+                        { 'questionPaperInfo.name': { $regex: search, $options: 'i' } }
+                    ]
+                }
+            });
+        }
 
-            // Populate the 'course' field with its 'title'.
-            .populate("course", "title")
+        aggregation.push(
+            {
+                $lookup: {
+                    from: "makers",
+                    localField: "maker",
+                    foreignField: "_id",
+                    as: "makerInfo"
+                }
+            },
+            { $unwind: { path: "$makerInfo", preserveNullAndEmptyArrays: true } },
+            {
+                $lookup: {
+                    from: "courses",
+                    localField: "course",
+                    foreignField: "_id",
+as: "courseInfo"
+                }
+            },
+            { $unwind: { path: "$courseInfo", preserveNullAndEmptyArrays: true } },
+            { $sort: { createdAt: -1 } },
+            {
+                $project: {
+                    _id: 1,
+                    question: 1,
+                    status: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                    maker: { _id: '$makerInfo._id', name: '$makerInfo.name', email: '$makerInfo.email' },
+                    course: { _id: '$courseInfo._id', title: '$courseInfo.title' },
+                    questionPaper: { _id: '$questionPaperInfo._id', name: '$questionPaperInfo.name' },
+                    unit: 1,
+                    unit_no: 1,
+                    topic: 1,
+                }
+            }
+        );
 
-            // Populate the 'questionPaper' field with its 'name'.
-            .populate("questionPaper", "name");
+        const questions = await Question.aggregate(aggregation);
 
-        // The response will now contain the full maker, course, and question paper objects, sorted by newest.
         res.json(questions);
 
     } catch (err) {

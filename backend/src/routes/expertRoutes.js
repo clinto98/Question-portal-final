@@ -5,6 +5,10 @@ import {
     getQuestionById,
     getFinalizedQuestionById,
     approveQuestion,
+    getApprovedQuestionCourses,
+    getApprovedQuestionSubjects,
+    getFinalizedQuestionCourses,
+    getFinalizedQuestionSubjects,
 } from "../controllers/expertController.js";
 import { protect, authorize } from "../middlewares/authmiddleware.js";
 import upload from "../middlewares/uploadmiddleware.js";
@@ -15,6 +19,10 @@ const router = express.Router();
 router.use(protect, authorize("expert"));
 
 router.get("/questions", getApprovedQuestions);
+router.get("/courses", getApprovedQuestionCourses);
+router.get("/subjects", getApprovedQuestionSubjects);
+router.get("/finalized-courses", getFinalizedQuestionCourses);
+router.get("/finalized-subjects", getFinalizedQuestionSubjects);
 router.get("/questions/finalized", getFinalizedQuestions);
 router.get("/questions/:id", getQuestionById);
 router.get("/finalized-questions/:id", getFinalizedQuestionById);

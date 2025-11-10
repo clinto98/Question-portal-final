@@ -109,13 +109,30 @@ export default function CheckerReview() {
   // State for filters
   const [filterMaker, setFilterMaker] = useState("All");
   const [filterCourse, setFilterCourse] = useState("All");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // 500ms delay
+
+    return () => {
+      clearTimeout(timerId);
+    };
+  }, [searchTerm]);
 
   useEffect(() => {
     const fetchPending = async () => {
       try {
+        setLoading(true);
         const token = localStorage.getItem("token");
+        const params = {
+            search: debouncedSearchTerm,
+        };
         const res = await axios.get(`${host}/api/checker/questions/pending`, {
           headers: { Authorization: `Bearer ${token}` },
+          params,
         });
         setQuestions(res.data);
       } catch (err) {
@@ -125,7 +142,7 @@ export default function CheckerReview() {
       }
     };
     fetchPending();
-  }, []);
+  }, [debouncedSearchTerm]);
 
   // UPDATED: Correctly extracts titles from populated course objects
   const makers = [
@@ -137,7 +154,7 @@ export default function CheckerReview() {
     ...new Set(questions.map((q) => q.course?.title).filter(Boolean)),
   ];
 
-  // UPDATED: Filters based on the course title
+  // Client-side filtering is removed as it's now handled by the backend
   const filteredQuestions = questions.filter((q) => {
     const matchesMaker = filterMaker === "All" || q.maker?.name === filterMaker;
     const matchesCourse =
@@ -205,6 +222,13 @@ export default function CheckerReview() {
             Questions for Review ({filteredQuestions.length})
           </h1>
           <div className="flex flex-col sm:flex-row gap-4 mt-6 pt-4 border-t">
+            <input
+              type="text"
+              placeholder="Search questions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 w-full focus:ring-2 focus:ring-blue-500"
+            />
             <select
               value={filterMaker}
               onChange={(e) => setFilterMaker(e.target.value)}

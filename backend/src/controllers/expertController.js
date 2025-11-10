@@ -5,18 +5,77 @@ import { QUESTION_STATUS } from "../constants/roles.js";
 import uploadToCloudinary from "../utils/cloudanaryhelper.js";
 import axios from "axios";
 import mongoose from "mongoose";
+import Course from "../models/Course.js";
+
 // @desc    Get all questions approved by checker
 // @route   GET /api/expert/questions
 // @access  Private/Expert
 const getApprovedQuestions = async (req, res) => {
     try {
-        const questions = await Question.find({ status: QUESTION_STATUS.APPROVED })
-            .populate("course", "title")
-            .populate("maker", "name");
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const course = req.query.course;
+        const subject = req.query.subject;
 
-        res.status(200).json({ success: true, data: questions });
+        let query = { status: QUESTION_STATUS.APPROVED };
+
+        if (course && course !== "All") {
+            // We need to find the course ID first based on the title
+            const courseDoc = await mongoose.model('Course').findOne({ title: course });
+            if (courseDoc) {
+                query.course = courseDoc._id;
+            }
+        }
+
+        if (subject && subject !== "All") {
+            query.subject = subject;
+        }
+
+        const totalQuestions = await Question.countDocuments(query);
+        const totalPages = Math.ceil(totalQuestions / limit);
+
+        const questions = await Question.find(query)
+            .populate("course", "title")
+            .populate("maker", "name")
+            .skip((page - 1) * limit)
+            .limit(limit);
+
+        res.status(200).json({
+            success: true,
+            data: questions,
+            totalPages,
+            currentPage: page,
+        });
     } catch (error) {
         console.error("Error fetching approved questions:", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+};
+
+// @desc    Get all unique courses for approved questions
+// @route   GET /api/expert/courses
+// @access  Private/Expert
+const getApprovedQuestionCourses = async (req, res) => {
+    try {
+        const courseIds = await Question.distinct("course", { status: QUESTION_STATUS.APPROVED });
+        const courses = await Course.find({ _id: { $in: courseIds } }).select("title");
+        const courseTitles = courses.map(course => course.title);
+        res.status(200).json({ success: true, data: courseTitles });
+    } catch (error) {
+        console.error("Error fetching approved question courses:", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+};
+
+// @desc    Get all unique subjects for approved questions
+// @route   GET /api/expert/subjects
+// @access  Private/Expert
+const getApprovedQuestionSubjects = async (req, res) => {
+    try {
+        const subjects = await Question.distinct("subject", { status: QUESTION_STATUS.APPROVED });
+        res.status(200).json({ success: true, data: subjects });
+    } catch (error) {
+        console.error("Error fetching approved question subjects:", error);
         res.status(500).json({ success: false, message: "Server Error" });
     }
 };
@@ -26,26 +85,96 @@ const getApprovedQuestions = async (req, res) => {
 // @access  Private/Expert
 const getFinalizedQuestions = async (req, res) => {
     try {
-        const previousPapers = await PreviousQuestionPaper.find({}).populate('course', 'title').sort({ createdAt: -1 });
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const courseTitle = req.query.course;
+        const subject = req.query.subject;
 
-        const finalizedQuestions = previousPapers.flatMap(paper =>
-            paper.questions.map(q => ({
-                _id: q._id, // This is the sub-document ID
-                question: { text: q.question, image: q.diagramUrl },
-                course: paper.course, // Populated course
-                subject: paper.subject,
-                status: QUESTION_STATUS.FINALISED,
-                unit: q.unit,
-                unit_no: q.unit_no,
-                topic: q.topic,
-                maker: { name: "N/A" }, // Maker info is not available in PreviousQuestionPaper
-                createdAt: paper.createdAt, // For sorting
-            }))
-        );
+        let matchStage = {};
+        if (subject && subject !== "All") {
+            matchStage.subject = subject;
+        }
 
-        res.status(200).json({ success: true, data: finalizedQuestions });
+        let courseMatchStage = {};
+        if (courseTitle && courseTitle !== "All") {
+            courseMatchStage['course.title'] = courseTitle;
+        }
+
+        const aggregation = [
+            { $match: matchStage },
+            {
+                $lookup: {
+                    from: 'courses',
+                    localField: 'course',
+                    foreignField: '_id',
+                    as: 'course'
+                }
+            },
+            { $unwind: '$course' },
+            { $match: courseMatchStage },
+            { $unwind: '$questions' },
+            {
+                $project: {
+                    _id: '$questions._id',
+                    question: { text: '$questions.question', image: '$questions.diagramUrl' },
+                    course: { _id: '$course._id', title: '$course.title' },
+                    subject: '$subject',
+                    status: 'Finalised',
+                    unit: '$questions.unit',
+                    unit_no: '$questions.unit_no',
+                    topic: '$questions.topic',
+                    maker: { name: "N/A" },
+                    createdAt: '$createdAt',
+                }
+            },
+            { $sort: { createdAt: -1 } }
+        ];
+
+        const countPipeline = [...aggregation, { $count: 'total' }];
+        const totalResult = await PreviousQuestionPaper.aggregate(countPipeline);
+        const totalQuestions = totalResult.length > 0 ? totalResult[0].total : 0;
+        const totalPages = Math.ceil(totalQuestions / limit);
+
+        const dataPipeline = [...aggregation, { $skip: (page - 1) * limit }, { $limit: limit }];
+        const finalizedQuestions = await PreviousQuestionPaper.aggregate(dataPipeline);
+
+        res.status(200).json({
+            success: true,
+            data: finalizedQuestions,
+            totalPages,
+            currentPage: page,
+        });
+
     } catch (error) {
         console.error("Error fetching finalized questions:", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+};
+
+// @desc    Get all unique courses for finalized questions
+// @route   GET /api/expert/finalized-courses
+// @access  Private/Expert
+const getFinalizedQuestionCourses = async (req, res) => {
+    try {
+        const courseIds = await PreviousQuestionPaper.distinct("course");
+        const courses = await Course.find({ _id: { $in: courseIds } }).select("title");
+        const courseTitles = courses.map(course => course.title);
+        res.status(200).json({ success: true, data: courseTitles });
+    } catch (error) {
+        console.error("Error fetching finalized question courses:", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+};
+
+// @desc    Get all unique subjects for finalized questions
+// @route   GET /api/expert/finalized-subjects
+// @access  Private/Expert
+const getFinalizedQuestionSubjects = async (req, res) => {
+    try {
+        const subjects = await PreviousQuestionPaper.distinct("subject");
+        res.status(200).json({ success: true, data: subjects });
+    } catch (error) {
+        console.error("Error fetching finalized question subjects:", error);
         res.status(500).json({ success: false, message: "Server Error" });
     }
 };
@@ -249,4 +378,4 @@ const approveQuestion = async (req, res) => {
     }
 };
 
-export { getApprovedQuestions, getFinalizedQuestions, getQuestionById, getFinalizedQuestionById, approveQuestion };
+export { getApprovedQuestions, getFinalizedQuestions, getQuestionById, getFinalizedQuestionById, approveQuestion, getApprovedQuestionCourses, getApprovedQuestionSubjects, getFinalizedQuestionCourses, getFinalizedQuestionSubjects };
