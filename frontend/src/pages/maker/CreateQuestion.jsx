@@ -451,6 +451,55 @@ const ImageCropModal = ({
   );
 };
 
+const explanationTabConfig = {
+  explanation1: "Explanation 1",
+  explanation2: "Explanation 2",
+  explanation3: "Explanation 3",
+};
+
+const ExplanationTabs = ({ explanations, activeTab, onTabClick, value, onInputChange }) => {
+  if (!explanations) {
+    return (
+      <Textarea
+        name="explanation"
+        placeholder="Explanation content... or generate one with AI."
+        value={value}
+        onChange={onInputChange}
+      />
+    );
+  }
+
+  return (
+    <div>
+      <div className="border-b border-gray-200 mb-4">
+        <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+          {Object.keys(explanationTabConfig).map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onTabClick(key)}
+              className={`${
+                activeTab === key
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition`}
+            >
+              {explanationTabConfig[key] || key}
+            </button>
+          ))}
+        </nav>
+      </div>
+      <Textarea
+        name="explanation"
+        placeholder="Explanation content..."
+        value={value}
+        onChange={onInputChange}
+        className="h-40" // Taller textarea for better viewing
+      />
+    </div>
+  );
+};
+
 // --- Main Component ---
 export default function CreateQuestion() {
   const { id } = useParams();
@@ -907,54 +956,7 @@ export default function CreateQuestion() {
     [formData, navigate]
   );
 
-  const explanationTabConfig = {
-    explanation1: "Formal & Detailed",
-    explanation2: "Concise",
-    explanation3: "Step-by-Step",
-  };
 
-  const ExplanationTabs = ({ explanations, activeTab, onTabClick, value, onInputChange }) => {
-    if (!explanations) {
-      return (
-        <Textarea
-          name="explanation"
-          placeholder="Explanation content... or generate one with AI."
-          value={value}
-          onChange={onInputChange}
-        />
-      );
-    }
-
-    return (
-      <div>
-        <div className="border-b border-gray-200 mb-4">
-          <nav className="-mb-px flex space-x-6" aria-label="Tabs">
-            {Object.keys(explanationTabConfig).map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => onTabClick(key)}
-                className={`${
-                  activeTab === key
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition`}
-              >
-                {explanationTabConfig[key] || key}
-              </button>
-            ))}
-          </nav>
-        </div>
-        <Textarea
-          name="explanation"
-          placeholder="Explanation content..."
-          value={value}
-          onChange={onInputChange}
-          className="h-40" // Taller textarea for better viewing
-        />
-      </div>
-    );
-  };
 
   return (
     <div className="bg-gray-100 min-h-screen p-4 sm:p-8">
