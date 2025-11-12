@@ -31,7 +31,7 @@ const generateExplanation = async (req, res) => {
       });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const textPrompt = `
     You are an expert educator. Your task is to provide 3 different concise explanations for a multiple-choice question, along with keywords and the topic. The question and/or options may include images, which are provided before this text.
