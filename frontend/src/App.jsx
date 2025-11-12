@@ -42,6 +42,7 @@ import Loader from "./components/Loader";
 import ReportPage from "./pages/admin/ReportPage";
 import PayoutPage from "./pages/admin/PayoutPage"; // Import PayoutPage
 import UpdatePricing from "./pages/admin/UpdatePricing";
+import UpdatePasswordPage from "./pages/maker/UpdatePasswordPage";
 
 function PrivateRoute({ children, role }) {
   const { user, loading } = useAuth();
@@ -119,6 +120,7 @@ export default function App() {
             <Route path="availabe-pdfs" element={<AvailablePdfsPage />} />
             <Route path="claimed-pdfs" element={<ClaimedPdfsPage />} />
             <Route path="dashboard" element={<MakerDashboard />} />
+            <Route path="update-password" element={<UpdatePasswordPage />} />
           </Route>
 
           <Route

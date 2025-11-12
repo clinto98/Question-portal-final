@@ -52,4 +52,33 @@ const loginChecker = (req, res) => handleLogin(Checker, "checker", req, res);
 const loginAdmin = (req, res) => handleLogin(Admin, "admin", req, res);
 const loginExpert = (req, res) => handleLogin(Expert, "expert", req, res);
 
-export { loginMaker, loginChecker, loginAdmin, loginExpert };
+const updateMakerPassword = async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+    const makerId = req.user.id;
+
+    if (!oldPassword || !newPassword) {
+        return res.status(400).json({ message: "Please provide both old and new passwords." });
+    }
+
+    try {
+        const maker = await Maker.findById(makerId).select("+password");
+        if (!maker) {
+            return res.status(404).json({ message: "Maker not found." });
+        }
+
+        const isMatch = await bcrypt.compare(oldPassword, maker.password);
+        if (!isMatch) {
+            return res.status(401).json({ message: "Incorrect old password." });
+        }
+
+        maker.password = await bcrypt.hash(newPassword, 10);
+        await maker.save();
+
+        res.json({ message: "Password updated successfully." });
+    } catch (error) {
+        console.error("Update maker password error:", error.message);
+        res.status(500).json({ message: "Server error." });
+    }
+};
+
+export { loginMaker, loginChecker, loginAdmin, loginExpert, updateMakerPassword };

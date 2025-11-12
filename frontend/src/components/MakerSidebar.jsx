@@ -9,7 +9,8 @@ import {
   HiOutlineClipboardList, 
   HiOutlineLogout,
   HiOutlineDotsVertical,
-  HiOutlineChevronDoubleLeft
+  HiOutlineChevronDoubleLeft,
+  HiOutlineKey
 } from "react-icons/hi";
 
 const menuItems = [
@@ -19,6 +20,7 @@ const menuItems = [
   { name: "Submitted", path: "/maker/submitted", icon: HiOutlineCloudUpload },
   { name: "Available Question Papers", path: "/maker/availabe-pdfs", icon: HiOutlineCollection },
   { name: "Claimed Question Papers", path: "/maker/claimed-pdfs", icon: HiOutlineClipboardList },
+  { name: "Update Password", path: "/maker/update-password", icon: HiOutlineKey },
 ];
 
 const NavItem = ({ item, isOpen }) => {
