@@ -11,6 +11,7 @@ const getPendingQuestions = async (req, res) => {
 
         let aggregation = [
             { $match: { status: "Pending" } },
+            { $sort: { createdAt: -1 } },
             {
                 $lookup: {
                     from: "questionpapers",
@@ -48,11 +49,10 @@ const getPendingQuestions = async (req, res) => {
                     from: "courses",
                     localField: "course",
                     foreignField: "_id",
-as: "courseInfo"
+                    as: "courseInfo"
                 }
             },
             { $unwind: { path: "$courseInfo", preserveNullAndEmptyArrays: true } },
-            { $sort: { createdAt: -1 } },
             {
                 $project: {
                     _id: 1,
@@ -70,7 +70,7 @@ as: "courseInfo"
             }
         );
 
-        const questions = await Question.aggregate(aggregation);
+        const questions = await Question.aggregate(aggregation).allowDiskUse(true);
 
         res.json(questions);
 
@@ -79,6 +79,7 @@ as: "courseInfo"
         res.status(500).json({ message: "Server error fetching pending questions" });
     }
 };
+
 
 const updateActionLog = async (Model, userId, logArrayName, questionId, session) => {
     const result = await Model.updateOne(
