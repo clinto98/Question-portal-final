@@ -593,7 +593,7 @@ export default function CreateQuestion() {
         }
       });
 
-      const res = await axios.post(`${host}/api/ai/generate-explanation`, formPayload, {
+      const res = await axios.post(`${host}/api/groq/generate-explanation`, formPayload, {
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',

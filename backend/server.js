@@ -9,6 +9,7 @@ import adminRoutes from './src/routes/adminRoutes.js'
 import expertRoutes from './src/routes/expertRoutes.js';
 import walletRoutes from './src/routes/walletRoutes.js';
 import aiRoutes from './src/routes/aiRoutes.js';
+import groqRoutes from './src/routes/groqRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -31,6 +32,7 @@ app.use("/api/checker", checkerRoutes);
 app.use("/api/expert", expertRoutes);
 app.use("/api/wallet", walletRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/groq", groqRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {
