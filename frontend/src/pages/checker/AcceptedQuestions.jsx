@@ -52,21 +52,59 @@ export default function AcceptedQuestions() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // State for modals and filters
+  // State for modals, filters, and pagination
   const [imageModalSrc, setImageModalSrc] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterMaker, setFilterMaker] = useState("All");
   const [filterCourse, setFilterCourse] = useState("All");
   const [filterQuestionPaper, setFilterQuestionPaper] = useState("All");
 
+  const [makers, setMakers] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [questionPapers, setQuestionPapers] = useState([]);
+
+  // Fetch filter options
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const [makersRes, coursesRes, papersRes] = await Promise.all([
+          axios.get(`${host}/api/checker/reviewed/makers`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${host}/api/checker/reviewed/courses`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${host}/api/checker/reviewed/question-papers`, { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        setMakers(["All", ...makersRes.data.data]);
+        setCourses(["All", ...coursesRes.data.data]);
+        setQuestionPapers(["All", ...papersRes.data.data]);
+      } catch (err) {
+        console.error("Error fetching filter options:", err);
+      }
+    };
+    fetchFilterOptions();
+  }, []);
+
   useEffect(() => {
     const fetchReviewed = async () => {
+      setLoading(true);
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(`${host}/api/checker/questions/reviewed`, {
           headers: { Authorization: `Bearer ${token}` },
+          params: { 
+            page: currentPage, 
+            limit: 10,
+            status: filterStatus,
+            maker: filterMaker,
+            course: filterCourse,
+            questionPaper: filterQuestionPaper,
+          },
         });
-        setQuestions(res.data);
+        setQuestions(res.data.data);
+        setTotalPages(res.data.totalPages);
+        setCurrentPage(res.data.currentPage);
       } catch (err) {
         console.error("Error fetching reviewed questions:", err);
       } finally {
@@ -74,36 +112,18 @@ export default function AcceptedQuestions() {
       }
     };
     fetchReviewed();
-  }, []);
+  }, [currentPage, filterStatus, filterMaker, filterCourse, filterQuestionPaper]);
 
-  // Deriving unique values for filter dropdowns from populated data
-  const makers = [
-    "All",
-    ...new Set(questions.map((q) => q.maker?.name).filter(Boolean)),
-  ];
-  const courses = [
-    "All",
-    ...new Set(questions.map((q) => q.course?.title).filter(Boolean)),
-  ];
-  const questionPapers = [
-    "All",
-    ...new Set(questions.map((q) => q.questionPaper?.name).filter(Boolean)),
-  ];
+  const handleFilterChange = (setter) => (e) => {
+    setter(e.target.value);
+    setCurrentPage(1); // Reset to first page on filter change
+  };
 
-  // Apply all filters
-  const filteredQuestions = questions.filter((q) => {
-    const matchesStatus = filterStatus === "All" || q.status === filterStatus;
-    const matchesMaker = filterMaker === "All" || q.maker?.name === filterMaker;
-    const matchesCourse =
-      filterCourse === "All" || q.course?.title === filterCourse;
-    const matchesQuestionPaper =
-      filterQuestionPaper === "All" ||
-      q.questionPaper?.name === filterQuestionPaper;
-
-    return (
-      matchesStatus && matchesMaker && matchesCourse && matchesQuestionPaper
-    );
-  });
+  const handlePageChange = (newPage) => {
+    if (newPage > 0 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -113,81 +133,35 @@ export default function AcceptedQuestions() {
             <h1 className="text-3xl font-bold text-gray-800">
               Reviewed Questions
             </h1>
-            <span className="mt-2 sm:mt-0 text-lg font-medium text-gray-600">
-              {filteredQuestions.length} Result(s)
-            </span>
           </div>
 
           {/* Filter Section */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-6 pt-4 border-t">
-            {/* Filter by Status */}
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">
-                Filter by Status
-              </label>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 w-full focus:ring-2 focus:ring-blue-500"
-              >
+              <label className="block text-sm font-medium text-gray-600 mb-1">Filter by Status</label>
+              <select value={filterStatus} onChange={handleFilterChange(setFilterStatus)} className="border border-gray-300 rounded-md px-3 py-2 w-full focus:ring-2 focus:ring-blue-500">
                 <option value="All">All Statuses</option>
                 <option value="Approved">Approved</option>
                 <option value="Rejected">Rejected</option>
                 <option value="Finalised">Finalised</option>
               </select>
             </div>
-
-            {/* Filter by Maker */}
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">
-                Filter by Maker
-              </label>
-              <select
-                value={filterMaker}
-                onChange={(e) => setFilterMaker(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 w-full focus:ring-2 focus:ring-blue-500"
-              >
-                {makers.map((name, idx) => (
-                  <option key={idx} value={name}>
-                    {name}
-                  </option>
-                ))}
+              <label className="block text-sm font-medium text-gray-600 mb-1">Filter by Maker</label>
+              <select value={filterMaker} onChange={handleFilterChange(setFilterMaker)} className="border border-gray-300 rounded-md px-3 py-2 w-full focus:ring-2 focus:ring-blue-500">
+                {makers.map((name, idx) => <option key={idx} value={name}>{name}</option>)}
               </select>
             </div>
-
-            {/* Filter by Course */}
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">
-                Filter by Course
-              </label>
-              <select
-                value={filterCourse}
-                onChange={(e) => setFilterCourse(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 w-full focus:ring-2 focus:ring-blue-500"
-              >
-                {courses.map((name, idx) => (
-                  <option key={idx} value={name}>
-                    {name}
-                  </option>
-                ))}
+              <label className="block text-sm font-medium text-gray-600 mb-1">Filter by Course</label>
+              <select value={filterCourse} onChange={handleFilterChange(setFilterCourse)} className="border border-gray-300 rounded-md px-3 py-2 w-full focus:ring-2 focus:ring-blue-500">
+                {courses.map((name, idx) => <option key={idx} value={name}>{name}</option>)}
               </select>
             </div>
-
-            {/* ✅ New Filter by Question Paper */}
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">
-                Filter by Question Paper
-              </label>
-              <select
-                value={filterQuestionPaper}
-                onChange={(e) => setFilterQuestionPaper(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 w-full focus:ring-2 focus:ring-blue-500"
-              >
-                {questionPapers.map((name, idx) => (
-                  <option key={idx} value={name}>
-                    {name}
-                  </option>
-                ))}
+              <label className="block text-sm font-medium text-gray-600 mb-1">Filter by Question Paper</label>
+              <select value={filterQuestionPaper} onChange={handleFilterChange(setFilterQuestionPaper)} className="border border-gray-300 rounded-md px-3 py-2 w-full focus:ring-2 focus:ring-blue-500">
+                {questionPapers.map((name, idx) => <option key={idx} value={name}>{name}</option>)}
               </select>
             </div>
           </div>
@@ -213,19 +187,12 @@ export default function AcceptedQuestions() {
                 </tr>
               </thead>
               <tbody>
-                {filteredQuestions.map((q) => (
+                {questions.map((q) => (
                   <tr key={q._id} className="bg-white border-b hover:bg-gray-50">
                     <td className="p-4 font-medium text-gray-900 max-w-xs">
-                      <span className="line-clamp-2 block mb-2">
-                        {q.question.text || "No text"}
-                      </span>
+                      <span className="line-clamp-2 block mb-2">{q.question.text || "No text"}</span>
                       {q.question.image && (
-                        <img
-                          src={q.question.image}
-                          alt="Q"
-                          className="h-10 w-16 object-contain rounded border cursor-pointer"
-                          onClick={() => setImageModalSrc(q.question.image)}
-                        />
+                        <img src={q.question.image} alt="Q" className="h-10 w-16 object-contain rounded border cursor-pointer" onClick={() => setImageModalSrc(q.question.image)} />
                       )}
                     </td>
                     <td className="p-4">{q.maker?.name || "N/A"}</td>
@@ -234,22 +201,17 @@ export default function AcceptedQuestions() {
                     <td className="p-4">{q.unit_no || "N/A"}</td>
                     <td className="p-4">{q.topic || "N/A"}</td>
                     <td className="p-4">{q.questionPaper?.name || "N/A"}</td>
-                    <td className="p-4">
-                      <StatusBadge status={q.status} />
-                    </td>
+                    <td className="p-4"><StatusBadge status={q.status} /></td>
                     <td className="p-4 text-center">
-                      <button
-                        onClick={() => navigate(`/checker/details/${q._id}`)}
-                        className="font-medium text-blue-600 hover:underline"
-                      >
+                      <button onClick={() => navigate(`/checker/details/${q._id}`)} className="font-medium text-blue-600 hover:underline">
                         View Details
                       </button>
                     </td>
                   </tr>
                 ))}
-                {filteredQuestions.length === 0 && (
+                {questions.length === 0 && (
                   <tr>
-                    <td colSpan="6" className="text-center p-10 text-gray-500">
+                    <td colSpan="9" className="text-center p-10 text-gray-500">
                       No reviewed questions match your filters.
                     </td>
                   </tr>
@@ -258,6 +220,17 @@ export default function AcceptedQuestions() {
             </table>
           </div>
         )}
+
+        {/* Pagination Controls */}
+        <div className="flex justify-between items-center mt-6">
+          <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage <= 1} className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md disabled:opacity-50">
+            Previous
+          </button>
+          <span className="text-gray-700">Page {currentPage} of {totalPages}</span>
+          <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage >= totalPages} className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md disabled:opacity-50">
+            Next
+          </button>
+        </div>
       </div>
 
       {/* Image Modal */}

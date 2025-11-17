@@ -3,15 +3,17 @@ import QuestionPaper from "../models/QuestionPaper.js";
 import mongoose from "mongoose";
 import Checker from "../models/Checker.js";
 import Maker from "../models/Maker.js";
+import Course from "../models/Course.js";
 import { updateWallet } from "../utils/walletHelper.js";
 
 const getPendingQuestions = async (req, res) => {
     try {
-        const { search } = req.query;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const { search, maker, course } = req.query;
 
         let aggregation = [
             { $match: { status: "Pending" } },
-            { $sort: { createdAt: -1 } },
             {
                 $lookup: {
                     from: "questionpapers",
@@ -21,20 +23,6 @@ const getPendingQuestions = async (req, res) => {
                 }
             },
             { $unwind: { path: "$questionPaperInfo", preserveNullAndEmptyArrays: true } },
-        ];
-
-        if (search) {
-            aggregation.push({
-                $match: {
-                    $or: [
-                        { 'question.text': { $regex: search, $options: 'i' } },
-                        { 'questionPaperInfo.name': { $regex: search, $options: 'i' } }
-                    ]
-                }
-            });
-        }
-
-        aggregation.push(
             {
                 $lookup: {
                     from: "makers",
@@ -53,26 +41,64 @@ const getPendingQuestions = async (req, res) => {
                 }
             },
             { $unwind: { path: "$courseInfo", preserveNullAndEmptyArrays: true } },
-            {
-                $project: {
-                    _id: 1,
-                    question: 1,
-                    status: 1,
-                    createdAt: 1,
-                    updatedAt: 1,
-                    maker: { _id: '$makerInfo._id', name: '$makerInfo.name', email: '$makerInfo.email' },
-                    course: { _id: '$courseInfo._id', title: '$courseInfo.title' },
-                    questionPaper: { _id: '$questionPaperInfo._id', name: '$questionPaperInfo.name' },
-                    unit: 1,
-                    unit_no: 1,
-                    topic: 1,
-                }
+        ];
+
+        let filterConditions = {};
+        if (search) {
+            filterConditions.$or = [
+                { 'question.text': { $regex: search, $options: 'i' } },
+                { 'questionPaperInfo.name': { $regex: search, $options: 'i' } }
+            ];
+        }
+        if (maker && maker !== "All") {
+            filterConditions['makerInfo.name'] = maker;
+        }
+        if (course && course !== "All") {
+            filterConditions['courseInfo.title'] = course;
+        }
+
+        if (Object.keys(filterConditions).length > 0) {
+            aggregation.push({ $match: filterConditions });
+        }
+
+        const facet = {
+            $facet: {
+                metadata: [{ $count: "total" }],
+                data: [
+                    { $sort: { createdAt: -1 } },
+                    { $skip: (page - 1) * limit },
+                    { $limit: limit },
+                    {
+                        $project: {
+                            _id: 1,
+                            question: 1,
+                            status: 1,
+                            createdAt: 1,
+                            updatedAt: 1,
+                            maker: { _id: '$makerInfo._id', name: '$makerInfo.name', email: '$makerInfo.email' },
+                            course: { _id: '$courseInfo._id', title: '$courseInfo.title' },
+                            questionPaper: { _id: '$questionPaperInfo._id', name: '$questionPaperInfo.name' },
+                            unit: 1,
+                            unit_no: 1,
+                            topic: 1,
+                        }
+                    }
+                ]
             }
-        );
+        };
 
-        const questions = await Question.aggregate(aggregation).allowDiskUse(true);
+        aggregation.push(facet);
 
-        res.json(questions);
+        const result = await Question.aggregate(aggregation).allowDiskUse(true);
+
+        const totalQuestions = result[0].metadata[0] ? result[0].metadata[0].total : 0;
+        const totalPages = Math.ceil(totalQuestions / limit);
+
+        res.json({
+            data: result[0].data,
+            totalPages,
+            currentPage: page,
+        });
 
     } catch (err) {
         console.error("Error fetching pending questions:", err);
@@ -232,19 +258,64 @@ const rejectQuestion = async (req, res) => {
 // Fetch all reviewed questions (Approved + Rejected)
 const getReviewedQuestions = async (req, res) => {
     try {
-        const questions = await Question.find({
-            status: { $in: ["Approved", "Rejected", "Finalised"] },
-            checkedBy: req.user._id
-        })
-            // Populate the maker's details
-            .populate("maker", "name email")
-            // --- UPDATED: Populate the course title ---
-            .populate("course", "title")
-            // --- UPDATED: Populate the question paper name ---
-            .populate("questionPaper", "name")
-            .sort({ updatedAt: -1 }); // Sort by last updated time
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const { status, maker, course, questionPaper } = req.query;
 
-        res.json(questions);
+        let query = {
+            checkedBy: req.user._id
+        };
+
+        if (status && status !== "All") {
+            query.status = status;
+        } else {
+            query.status = { $in: ["Approved", "Rejected", "Finalised"] };
+        }
+
+        if (maker && maker !== "All") {
+            const makerDoc = await Maker.findOne({ name: maker });
+            if (makerDoc) {
+                query.maker = makerDoc._id;
+            } else {
+                return res.json({ success: true, data: [], totalPages: 0, currentPage: 1 });
+            }
+        }
+
+        if (course && course !== "All") {
+            const courseDoc = await Course.findOne({ title: course });
+            if (courseDoc) {
+                query.course = courseDoc._id;
+            } else {
+                return res.json({ success: true, data: [], totalPages: 0, currentPage: 1 });
+            }
+        }
+
+        if (questionPaper && questionPaper !== "All") {
+            const paperDoc = await QuestionPaper.findOne({ name: questionPaper });
+            if (paperDoc) {
+                query.questionPaper = paperDoc._id;
+            } else {
+                return res.json({ success: true, data: [], totalPages: 0, currentPage: 1 });
+            }
+        }
+
+        const totalQuestions = await Question.countDocuments(query);
+        const totalPages = Math.ceil(totalQuestions / limit);
+
+        const questions = await Question.find(query)
+            .populate("maker", "name email")
+            .populate("course", "title")
+            .populate("questionPaper", "name")
+            .sort({ updatedAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit);
+
+        res.json({
+            success: true,
+            data: questions,
+            totalPages,
+            currentPage: page,
+        });
     } catch (err) {
         console.error("Error fetching reviewed questions:", err);
         res.status(500).json({ message: "Server error fetching reviewed questions" });
@@ -564,6 +635,63 @@ const getDateRange = (timeframe, start, end) => {
     return { startDate, endDate };
 };
 
+
+const getReviewedMakers = async (req, res) => {
+    try {
+        const makerIds = await Question.distinct("maker", { checkedBy: req.user._id });
+        const makers = await Maker.find({ _id: { $in: makerIds } }).select("name");
+        res.json({ success: true, data: makers.map(m => m.name) });
+    } catch (err) {
+        console.error("Error fetching reviewed makers:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+const getReviewedCourses = async (req, res) => {
+    try {
+        const courseIds = await Question.distinct("course", { checkedBy: req.user._id });
+        const courses = await Course.find({ _id: { $in: courseIds } }).select("title");
+        res.json({ success: true, data: courses.map(c => c.title) });
+    } catch (err) {
+        console.error("Error fetching reviewed courses:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+const getReviewedQuestionPapers = async (req, res) => {
+    try {
+        const paperIds = await Question.distinct("questionPaper", { checkedBy: req.user._id });
+        const papers = await QuestionPaper.find({ _id: { $in: paperIds } }).select("name");
+        res.json({ success: true, data: papers.map(p => p.name) });
+    } catch (err) {
+        console.error("Error fetching reviewed question papers:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+const getPendingMakers = async (req, res) => {
+    try {
+        const makerIds = await Question.distinct("maker", { status: "Pending" });
+        const makers = await Maker.find({ _id: { $in: makerIds } }).select("name");
+        res.json({ success: true, data: makers.map(m => m.name) });
+    } catch (err) {
+        console.error("Error fetching pending makers:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+const getPendingCourses = async (req, res) => {
+    try {
+        const courseIds = await Question.distinct("course", { status: "Pending" });
+        const courses = await Course.find({ _id: { $in: courseIds } }).select("title");
+        res.json({ success: true, data: courses.map(c => c.title) });
+    } catch (err) {
+        console.error("Error fetching pending courses:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+
 export {
     getPendingQuestions,
     approveQuestion,
@@ -572,5 +700,10 @@ export {
     bulkApproveQuestions,
     getQuestionById,
     getPapers,
-    getCheckerDashboardStats
+    getCheckerDashboardStats,
+    getReviewedMakers,
+    getReviewedCourses,
+    getReviewedQuestionPapers,
+    getPendingMakers,
+    getPendingCourses
 };

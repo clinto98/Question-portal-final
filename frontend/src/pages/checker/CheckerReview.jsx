@@ -106,11 +106,34 @@ export default function CheckerReview() {
     message: "",
   });
 
-  // State for filters
+  // State for filters and pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [filterMaker, setFilterMaker] = useState("All");
   const [filterCourse, setFilterCourse] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
+  const [makers, setMakers] = useState([]);
+  const [courses, setCourses] = useState([]);
+
+  // Fetch filter options
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const [makersRes, coursesRes] = await Promise.all([
+          axios.get(`${host}/api/checker/pending/makers`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${host}/api/checker/pending/courses`, { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        setMakers(["All", ...makersRes.data.data]);
+        setCourses(["All", ...coursesRes.data.data]);
+      } catch (err) {
+        console.error("Error fetching filter options:", err);
+      }
+    };
+    fetchFilterOptions();
+  }, []);
 
   useEffect(() => {
     const timerId = setTimeout(() => {
@@ -128,13 +151,19 @@ export default function CheckerReview() {
         setLoading(true);
         const token = localStorage.getItem("token");
         const params = {
-            search: debouncedSearchTerm,
+          page: currentPage,
+          limit: 10,
+          search: debouncedSearchTerm,
+          maker: filterMaker,
+          course: filterCourse,
         };
         const res = await axios.get(`${host}/api/checker/questions/pending`, {
           headers: { Authorization: `Bearer ${token}` },
           params,
         });
-        setQuestions(res.data);
+        setQuestions(res.data.data);
+        setTotalPages(res.data.totalPages);
+        setCurrentPage(res.data.currentPage);
       } catch (err) {
         console.error("Error fetching pending questions", err);
       } finally {
@@ -142,25 +171,18 @@ export default function CheckerReview() {
       }
     };
     fetchPending();
-  }, [debouncedSearchTerm]);
+  }, [currentPage, debouncedSearchTerm, filterMaker, filterCourse]);
 
-  // UPDATED: Correctly extracts titles from populated course objects
-  const makers = [
-    "All",
-    ...new Set(questions.map((q) => q.maker?.name).filter(Boolean)),
-  ];
-  const courses = [
-    "All",
-    ...new Set(questions.map((q) => q.course?.title).filter(Boolean)),
-  ];
+  const handleFilterChange = (setter) => (e) => {
+    setter(e.target.value);
+    setCurrentPage(1);
+  };
 
-  // Client-side filtering is removed as it's now handled by the backend
-  const filteredQuestions = questions.filter((q) => {
-    const matchesMaker = filterMaker === "All" || q.maker?.name === filterMaker;
-    const matchesCourse =
-      filterCourse === "All" || q.course?.title === filterCourse;
-    return matchesMaker && matchesCourse;
-  });
+  const handlePageChange = (newPage) => {
+    if (newPage > 0 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
 
   const handleToggleSelect = (id) => {
     setSelectedQuestions((prev) =>
@@ -169,10 +191,10 @@ export default function CheckerReview() {
   };
 
   const handleSelectAll = () => {
-    if (selectedQuestions.length === filteredQuestions.length) {
+    if (selectedQuestions.length === questions.length) {
       setSelectedQuestions([]);
     } else {
-      setSelectedQuestions(filteredQuestions.map((q) => q._id));
+      setSelectedQuestions(questions.map((q) => q._id));
     }
   };
 
@@ -219,7 +241,7 @@ export default function CheckerReview() {
       <div className="max-w-7xl mx-auto p-4 sm:p-6">
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
           <h1 className="text-3xl font-bold text-gray-800">
-            Questions for Review ({filteredQuestions.length})
+            Questions for Review ({questions.length})
           </h1>
           <div className="flex flex-col sm:flex-row gap-4 mt-6 pt-4 border-t">
             <input
@@ -231,7 +253,7 @@ export default function CheckerReview() {
             />
             <select
               value={filterMaker}
-              onChange={(e) => setFilterMaker(e.target.value)}
+              onChange={handleFilterChange(setFilterMaker)}
               className="border border-gray-300 rounded-md px-3 py-2 w-full sm:w-1/2 focus:ring-2 focus:ring-blue-500"
             >
               {makers.map((name, idx) => (
@@ -242,7 +264,7 @@ export default function CheckerReview() {
             </select>
             <select
               value={filterCourse}
-              onChange={(e) => setFilterCourse(e.target.value)}
+              onChange={handleFilterChange(setFilterCourse)}
               className="border border-gray-300 rounded-md px-3 py-2 w-full sm:w-1/2 focus:ring-2 focus:ring-blue-500"
             >
               {courses.map((name, idx) => (
@@ -254,7 +276,7 @@ export default function CheckerReview() {
           </div>
         </div>
 
-        {filteredQuestions.length > 0 && (
+        {questions.length > 0 && (
           <div className="bg-white p-4 rounded-lg shadow-md mb-6 flex items-center justify-between">
             <div className="flex items-center">
               <input
@@ -262,7 +284,7 @@ export default function CheckerReview() {
                 id="selectAll"
                 checked={
                   selectedQuestions.length > 0 &&
-                  selectedQuestions.length === filteredQuestions.length
+                  selectedQuestions.length === questions.length
                 }
                 onChange={handleSelectAll}
                 className="h-5 w-5 text-blue-600 rounded"
@@ -303,7 +325,7 @@ export default function CheckerReview() {
                 </tr>
               </thead>
               <tbody>
-                {filteredQuestions.map((q) => (
+                {questions.map((q) => (
                   <tr
                     key={q._id}
                     className="bg-white border-b hover:bg-gray-50"
@@ -349,7 +371,7 @@ export default function CheckerReview() {
                     </td>
                   </tr>
                 ))}
-                {filteredQuestions.length === 0 && (
+                {questions.length === 0 && (
                   <tr>
                     <td colSpan="7" className="text-center p-10 text-gray-500">
                       No pending questions match your filters.
@@ -360,6 +382,17 @@ export default function CheckerReview() {
             </table>
           </div>
         )}
+
+        {/* Pagination Controls */}
+        <div className="flex justify-between items-center mt-6">
+          <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage <= 1} className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md disabled:opacity-50">
+            Previous
+          </button>
+          <span className="text-gray-700">Page {currentPage} of {totalPages}</span>
+          <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage >= totalPages} className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md disabled:opacity-50">
+            Next
+          </button>
+        </div>
       </div>
 
       <ConfirmationModal
