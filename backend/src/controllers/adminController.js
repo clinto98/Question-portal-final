@@ -219,30 +219,58 @@ const uploadPdfs = async (req, res) => {
 
 const getAllPdfs = async (req, res) => {
     try {
-        const { status } = req.query;
+        const { status, course, subject, year, search } = req.query;
 
         let filter = {};
+
+        // Handle status filter
         if (status === 'claimed') {
             filter.usedBy = { $ne: null };
         } else if (status === 'available') {
             filter.usedBy = { $eq: null };
         }
 
-        // Perform count queries
-        const allCount = await QuestionPaper.countDocuments({});
-        const claimedCount = await QuestionPaper.countDocuments({ usedBy: { $ne: null } });
-        const availableCount = await QuestionPaper.countDocuments({ usedBy: { $eq: null } });
+        // Handle course filter - requires finding the course ID from its title
+        if (course && course !== 'All') {
+            const courseDoc = await Course.findOne({ title: course }).select('_id');
+            if (courseDoc) {
+                filter.course = courseDoc._id;
+            } else {
+                // If course title is specified but not found, return no results
+                return res.json({
+                    success: true,
+                    files: [],
+                    counts: { all: 0, claimed: 0, available: 0 }
+                });
+            }
+        }
 
-        // Fetch documents from the QuestionPaper collection based on the filter.
+        // Handle subject filter
+        if (subject && subject !== 'All') {
+            filter.subject = subject;
+        }
+
+        // Handle year filter
+        if (year && year !== 'All') {
+            filter.questionPaperYear = year;
+        }
+
+        // Handle search term filter
+        if (search) {
+            filter.name = { $regex: search, $options: 'i' }; // Case-insensitive search
+        }
+
+        // Perform count queries with the same base filter
+        const allCount = await QuestionPaper.countDocuments(filter);
+        const claimedCount = await QuestionPaper.countDocuments({ ...filter, usedBy: { $ne: null } });
+        const availableCount = await QuestionPaper.countDocuments({ ...filter, usedBy: { $eq: null } });
+
+        // Fetch documents from the QuestionPaper collection based on the final filter.
         const allPapers = await QuestionPaper.find(filter)
-            // Populate 'usedBy' to get the maker's name. If null, it remains null.
             .populate('usedBy', 'name')
-            // Also populate the 'course' field to get the course's title.
             .populate('course', 'title')
-            // Sort by newest first for a logical default order.
             .sort({ createdAt: -1 });
 
-        // The response will now include the counts and the filtered list of papers.
         res.json({
             success: true,
             files: allPapers,
@@ -1021,5 +1049,24 @@ const updatePricing = async (req, res) => {
     }
 };
 
-export { createUser, getAllUsers, uploadPdfs ,getAllPdfs,deletePdf,getDashboardStats,createCourse ,getAllCourses,toggleUserStatus, getUsersByRole, getReport, downloadReport, recordPayment, getUserTransactions, getUserWalletBalance, getPricing, updatePricing};
+export { createUser, getAllUsers, uploadPdfs ,getAllPdfs,deletePdf,getDashboardStats,createCourse ,getAllCourses,toggleUserStatus, getUsersByRole, getReport, downloadReport, recordPayment, getUserTransactions, getUserWalletBalance, getPricing, updatePricing, getFilterOptions};
 
+const getFilterOptions = async (req, res) => {
+    try {
+        const courses = await Course.find().select('title').lean();
+        const subjects = await QuestionPaper.distinct('subject');
+        const years = await QuestionPaper.distinct('questionPaperYear');
+
+        // The 'distinct' method returns an array of values.
+        // We filter out any null/undefined values just in case.
+        res.json({
+            success: true,
+            courses: courses.map(c => c.title).filter(Boolean),
+            subjects: subjects.filter(Boolean),
+            years: years.filter(Boolean).sort((a, b) => b - a), // Sort years descending
+        });
+    } catch (err) {
+        console.error("Error fetching filter options:", err);
+        res.status(500).json({ success: false, error: "Server error while fetching filter options." });
+    }
+};

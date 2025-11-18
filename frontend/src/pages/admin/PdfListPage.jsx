@@ -126,18 +126,26 @@ export default function PdfListPage() {
   });
   const [filterCourse, setFilterCourse] = useState("All");
   const [filterSubject, setFilterSubject] = useState("All");
-  const [filterYear, setFilterYear] = useState("All"); // ADDED: State for year filter
-  const [filterStatus, setFilterStatus] = useState("all"); // 'all', 'claimed', 'available'
+  const [filterYear, setFilterYear] = useState("All");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [counts, setCounts] = useState({ all: 0, claimed: 0, available: 0 });
+
+  // State for filter dropdown options
+  const [courseOptions, setCourseOptions] = useState([]);
+  const [subjectOptions, setSubjectOptions] = useState([]);
+  const [yearOptions, setYearOptions] = useState([]);
 
   const fetchPdfs = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const params = {};
-      if (filterStatus !== 'all') {
-        params.status = filterStatus;
-      }
+      const params = {
+        status: filterStatus,
+        course: filterCourse === "All" ? "" : filterCourse,
+        subject: filterSubject === "All" ? "" : filterSubject,
+        year: filterYear === "All" ? "" : filterYear,
+        search: searchTerm,
+      };
 
       const res = await axios.get(`${host}/api/admin/pdfs`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -160,9 +168,35 @@ export default function PdfListPage() {
     }
   };
 
+  const fetchFilterOptions = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${host}/api/admin/pdfs/filters`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.data.success) {
+        setCourseOptions(["All", ...res.data.courses]);
+        setSubjectOptions(["All", ...res.data.subjects]);
+        setYearOptions(["All", ...res.data.years]);
+      }
+    } catch (err) {
+      console.error("Error fetching filter options:", err);
+    }
+  };
+
   useEffect(() => {
-    fetchPdfs();
-  }, [filterStatus]);
+    fetchFilterOptions();
+  }, []);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      fetchPdfs();
+    }, 500); // Debounce search term
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [filterStatus, filterCourse, filterSubject, filterYear, searchTerm]);
 
   const proceedWithDelete = async (id) => {
     try {
@@ -204,33 +238,6 @@ export default function PdfListPage() {
     });
   };
 
-  // Deriving unique values for filter dropdowns
-  const courses = [
-    "All",
-    ...new Set(pdfs.map((pdf) => pdf.course?.title).filter(Boolean)),
-  ];
-  const subjects = [
-    "All",
-    ...new Set(pdfs.map((pdf) => pdf.subject).filter(Boolean)),
-  ];
-  const years = [
-    "All",
-    ...new Set(pdfs.map((pdf) => pdf.questionPaperYear).filter(Boolean)),
-  ].sort(); // ADDED: Get unique years
-
-  const filteredPdfs = pdfs.filter((pdf) => {
-    const matchesSearch = pdf.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesCourse =
-      filterCourse === "All" || pdf.course?.title === filterCourse;
-    const matchesSubject =
-      filterSubject === "All" || pdf.subject === filterSubject;
-    const matchesYear =
-      filterYear === "All" || pdf.questionPaperYear == filterYear; // ADDED: Year filter logic
-    return matchesSearch && matchesCourse && matchesSubject && matchesYear;
-  });
-
   return (
     <div className="bg-gray-50 min-h-screen p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
@@ -254,7 +261,7 @@ export default function PdfListPage() {
               onChange={(e) => setFilterCourse(e.target.value)}
               className="border border-gray-300 rounded-md px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 bg-white"
             >
-              {courses.map((name, idx) => (
+              {courseOptions.map((name, idx) => (
                 <option key={idx} value={name}>
                   {name === "All" ? "All Courses" : name}
                 </option>
@@ -265,19 +272,18 @@ export default function PdfListPage() {
               onChange={(e) => setFilterSubject(e.target.value)}
               className="border border-gray-300 rounded-md px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 bg-white"
             >
-              {subjects.map((name, idx) => (
+              {subjectOptions.map((name, idx) => (
                 <option key={idx} value={name}>
                   {name === "All" ? "All Subjects" : name}
                 </option>
               ))}
             </select>
-            {/* ADDED: Year Filter Dropdown */}
             <select
               value={filterYear}
               onChange={(e) => setFilterYear(e.target.value)}
               className="border border-gray-300 rounded-md px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 bg-white"
             >
-              {years.map((year, idx) => (
+              {yearOptions.map((year, idx) => (
                 <option key={idx} value={year}>
                   {year === "All" ? "All Years" : year}
                 </option>
@@ -324,7 +330,7 @@ export default function PdfListPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredPdfs.map((pdf) => (
+                {pdfs.map((pdf) => (
                   <tr
                     key={pdf._id}
                     className="bg-white border-b hover:bg-gray-50"
@@ -379,7 +385,7 @@ export default function PdfListPage() {
                     </td>
                   </tr>
                 ))}
-                {filteredPdfs.length === 0 && (
+                {pdfs.length === 0 && (
                   <tr>
                     <td colSpan="10" className="text-center p-10 text-gray-500">
                       No PDFs found matching your criteria.

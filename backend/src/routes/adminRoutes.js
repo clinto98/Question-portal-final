@@ -1,7 +1,7 @@
 import express from "express";
 import { protect, authorize } from "../middlewares/authmiddleware.js";
 import { loadPricing } from "../middlewares/pricingMiddleware.js";
-import { createUser, getAllUsers, toggleUserStatus ,uploadPdfs ,getAllPdfs , deletePdf , getDashboardStats,createCourse ,getAllCourses, getUsersByRole, getReport, downloadReport, recordPayment, getUserTransactions, getUserWalletBalance, getPricing, updatePricing} from "../controllers/adminController.js";
+import { createUser, getAllUsers, toggleUserStatus ,uploadPdfs ,getAllPdfs , deletePdf , getDashboardStats,createCourse ,getAllCourses, getUsersByRole, getReport, downloadReport, recordPayment, getUserTransactions, getUserWalletBalance, getPricing, updatePricing, getFilterOptions} from "../controllers/adminController.js";
 import multer from "multer";
 
 const router = express.Router();
@@ -42,6 +42,9 @@ router.post(
     ]),
     uploadPdfs
 );
+
+// Get filter options for PDFs
+router.get("/pdfs/filters", getFilterOptions);
 
 // Get all PDFs
 router.get("/pdfs", getAllPdfs);
