@@ -1,7 +1,7 @@
 import express from "express";
 import { protect, authorize } from "../middlewares/authmiddleware.js";
 import { loadPricing } from "../middlewares/pricingMiddleware.js";
-import { createUser, getAllUsers, toggleUserStatus ,uploadPdfs ,getAllPdfs , deletePdf , getDashboardStats,createCourse ,getAllCourses, getUsersByRole, getReport, downloadReport, recordPayment, getUserTransactions, getUserWalletBalance, getPricing, updatePricing, getFilterOptions} from "../controllers/adminController.js";
+import { createUser, getAllUsers, toggleUserStatus ,uploadPdfs ,getAllPdfs , deletePdf , getDashboardStats,createCourse ,getAllCourses, getUsersByRole, getReport, downloadReport, recordPayment, getUserTransactions, getUserWalletBalance, getPricing, updatePricing, getFilterOptions, getPendingQuestionPapers, approveQuestionPaper} from "../controllers/adminController.js";
 import multer from "multer";
 
 const router = express.Router();
@@ -48,6 +48,12 @@ router.get("/pdfs/filters", getFilterOptions);
 
 // Get all PDFs
 router.get("/pdfs", getAllPdfs);
+
+// Get all pending question papers for approval
+router.get("/question-papers/pending", getPendingQuestionPapers);
+
+// Approve a question paper
+router.patch("/question-papers/:id/approve", approveQuestionPaper);
 
 // Delete a PDF
 router.delete("/pdfs/:id", deletePdf);

@@ -359,20 +359,19 @@ const getSubmittedQuestions = async (req, res) => {
 
 const getAvailablePapers = async (req, res) => {
     try {
-        // Find all question papers where the 'claimedBy' field is not set (i.e., is null or does not exist).
-        // This retrieves all "unlocked" or "available" papers.
-        const availablePapers = await QuestionPaper.find({ usedBy: null })
-            // Populate the 'course' field and select only its 'title' for the response.
+        // Find all question papers that are approved and not yet claimed.
+        const availablePapers = await QuestionPaper.find({ 
+            usedBy: null, 
+            status: 'approved' 
+        })
             .populate({
                 path: 'course',
                 select: 'title'
             })
-            // Continue to populate the name of the admin who uploaded it.
             .populate({
                 path: 'uploadedBy',
                 select: 'name'
             })
-            // Sort to show the most recently uploaded papers first.
             .sort({ createdAt: -1 });
 
         res.status(200).json(availablePapers);

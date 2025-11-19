@@ -8,12 +8,29 @@ import { updateWallet } from "../utils/walletHelper.js";
 
 const getPendingQuestions = async (req, res) => {
     try {
+        const checkerEmail = req.user.email;
+
+        // Find the maker with the same email as the checker
+        const makerWithSameEmail = await Maker.findOne({ email: checkerEmail }).lean();
+
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const { search, maker, course } = req.query;
 
-        let aggregation = [
-            { $match: { status: "Pending" } },
+        let aggregation = [];
+
+        // Base match condition
+        const initialMatch = { status: "Pending" };
+
+        // If a maker with the same email exists, exclude their questions
+        if (makerWithSameEmail) {
+            initialMatch.maker = { $ne: makerWithSameEmail._id };
+        }
+
+        aggregation.push({ $match: initialMatch });
+
+        // Add the rest of the aggregation pipeline
+        aggregation.push(
             {
                 $lookup: {
                     from: "questionpapers",
@@ -41,7 +58,7 @@ const getPendingQuestions = async (req, res) => {
                 }
             },
             { $unwind: { path: "$courseInfo", preserveNullAndEmptyArrays: true } },
-        ];
+        );
 
         let filterConditions = {};
         if (search) {

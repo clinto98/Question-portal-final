@@ -1049,7 +1049,7 @@ const updatePricing = async (req, res) => {
     }
 };
 
-export { createUser, getAllUsers, uploadPdfs ,getAllPdfs,deletePdf,getDashboardStats,createCourse ,getAllCourses,toggleUserStatus, getUsersByRole, getReport, downloadReport, recordPayment, getUserTransactions, getUserWalletBalance, getPricing, updatePricing, getFilterOptions};
+export { createUser, getAllUsers, uploadPdfs ,getAllPdfs,deletePdf,getDashboardStats,createCourse ,getAllCourses,toggleUserStatus, getUsersByRole, getReport, downloadReport, recordPayment, getUserTransactions, getUserWalletBalance, getPricing, updatePricing, getFilterOptions, getPendingQuestionPapers, approveQuestionPaper};
 
 const getFilterOptions = async (req, res) => {
     try {
@@ -1068,5 +1068,47 @@ const getFilterOptions = async (req, res) => {
     } catch (err) {
         console.error("Error fetching filter options:", err);
         res.status(500).json({ success: false, error: "Server error while fetching filter options." });
+    }
+};
+
+const getPendingQuestionPapers = async (req, res) => {
+    try {
+        const pendingPapers = await QuestionPaper.find({ status: 'pending' })
+            .populate('course', 'title')
+            .populate('uploadedBy', 'name')
+            .sort({ createdAt: -1 });
+
+        res.json({
+            success: true,
+            files: pendingPapers,
+        });
+    } catch (err) {
+        console.error("Error fetching pending question papers:", err);
+        res.status(500).json({ success: false, error: "Server error while fetching pending papers." });
+    }
+};
+
+const approveQuestionPaper = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const paper = await QuestionPaper.findById(id);
+
+        if (!paper) {
+            return res.status(404).json({ success: false, message: "Question Paper not found." });
+        }
+
+        if (paper.status === 'approved') {
+            return res.status(400).json({ success: false, message: "This paper has already been approved." });
+        }
+
+        paper.status = 'approved';
+        await paper.save();
+
+        res.json({ success: true, message: "Question Paper approved successfully.", paper });
+
+    } catch (err) {
+        console.error("Error approving question paper:", err);
+        res.status(500).json({ success: false, error: "Server error while approving the paper." });
     }
 };

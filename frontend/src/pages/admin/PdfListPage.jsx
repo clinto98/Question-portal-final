@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { host } from "../../utils/APIRoutes";
 import Loader from "../../components/Loader";
+import { toast, Toaster } from "react-hot-toast";
 
 // --- Reusable Modal Components ---
 
@@ -25,29 +26,6 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, message }) => {
             Delete
           </button>
         </div>
-      </div>
-    </div>
-  );
-};
-
-const NotificationModal = ({ isOpen, onClose, message, isError }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 text-center">
-        <p className={`mb-4 ${isError ? "text-red-600" : "text-gray-800"}`}>
-          {message}
-        </p>
-        <button
-          onClick={onClose}
-          className={`px-6 py-2 rounded-md font-semibold text-white ${
-            isError
-              ? "bg-red-500 hover:bg-red-600"
-              : "bg-blue-600 hover:bg-blue-700"
-          }`}
-        >
-          OK
-        </button>
       </div>
     </div>
   );
@@ -94,14 +72,34 @@ const TrashIcon = () => (
   </svg>
 );
 
-const StatusBadge = ({ isClaimed }) => {
-  const bgColor = isClaimed ? "bg-yellow-100" : "bg-green-100";
-  const textColor = isClaimed ? "text-yellow-800" : "text-green-800";
+const CheckCircleIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+);
+
+const StatusBadge = ({ status, isClaimed }) => {
+  let bgColor, textColor, text;
+
+  if (status === 'pending') {
+    bgColor = "bg-orange-100";
+    textColor = "text-orange-800";
+    text = "Pending";
+  } else if (isClaimed) {
+    bgColor = "bg-yellow-100";
+    textColor = "text-yellow-800";
+    text = "Claimed";
+  } else {
+    bgColor = "bg-green-100";
+    textColor = "text-green-800";
+    text = "Available";
+  }
+
   return (
     <span
       className={`px-3 py-1 text-xs font-bold rounded-full ${bgColor} ${textColor}`}
     >
-      {isClaimed ? "Claimed" : "Available"}
+      {text}
     </span>
   );
 };
@@ -118,11 +116,6 @@ export default function PdfListPage() {
     isOpen: false,
     message: "",
     onConfirm: () => {},
-  });
-  const [notification, setNotification] = useState({
-    isOpen: false,
-    message: "",
-    isError: false,
   });
   const [filterCourse, setFilterCourse] = useState("All");
   const [filterSubject, setFilterSubject] = useState("All");
@@ -158,11 +151,7 @@ export default function PdfListPage() {
       }
     } catch (err) {
       console.error("Error fetching PDFs:", err);
-      setNotification({
-        isOpen: true,
-        message: "Failed to fetch PDFs from the server.",
-        isError: true,
-      });
+      toast.error("Failed to fetch PDFs from the server.");
     } finally {
       setLoading(false);
     }
@@ -205,26 +194,14 @@ export default function PdfListPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.data.success) {
-        setNotification({
-          isOpen: true,
-          message: "PDF deleted successfully",
-          isError: false,
-        });
+        toast.success("PDF deleted successfully");
         fetchPdfs(); // Re-fetch
       } else {
-        setNotification({
-          isOpen: true,
-          message: `Delete failed: ${res.data.error}`,
-          isError: true,
-        });
+        toast.error(`Delete failed: ${res.data.error}`);
       }
     } catch (err) {
       console.error(err);
-      setNotification({
-        isOpen: true,
-        message: "An error occurred while deleting the PDF.",
-        isError: true,
-      });
+      toast.error("An error occurred while deleting the PDF.");
     }
     setConfirmation({ isOpen: false });
   };
@@ -238,8 +215,33 @@ export default function PdfListPage() {
     });
   };
 
+  const handleApprove = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const { data } = await axios.patch(`${host}/api/admin/question-papers/${id}/approve`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (data.success) {
+        toast.success(data.message);
+        // Update the status of the approved PDF in the local state
+        setPdfs(currentPdfs => 
+            currentPdfs.map(pdf => 
+                pdf._id === id ? { ...pdf, status: 'approved' } : pdf
+            )
+        );
+      } else {
+        toast.error(data.message || "Approval failed.");
+      }
+    } catch (err) {
+      console.error("Error approving PDF:", err);
+      toast.error(err.response?.data?.message || "An error occurred during approval.");
+    }
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen p-4 sm:p-8">
+      <Toaster position="top-center" reverseOrder={false} />
       <div className="max-w-7xl mx-auto">
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
           <h1 className="text-3xl font-bold text-gray-800">
@@ -369,19 +371,30 @@ export default function PdfListPage() {
                       )}
                     </td>
                     <td className="p-4">
-                      <StatusBadge isClaimed={!!pdf.usedBy} />
+                      <StatusBadge status={pdf.status} isClaimed={!!pdf.usedBy} />
                     </td>
                     <td className="p-4 font-medium">
                       {pdf.usedBy?.name || "N/A"}
                     </td>
                     <td className="p-4 text-center">
-                      <button
-                        onClick={() => handleDelete(pdf._id)}
-                        title="Delete Paper"
-                        className="flex items-center justify-center mx-auto p-2 rounded-full bg-red-100 text-red-700 hover:bg-red-200"
-                      >
-                        <TrashIcon />
-                      </button>
+                      <div className="flex items-center justify-center gap-2">
+                        {pdf.status === 'pending' && (
+                            <button
+                                onClick={() => handleApprove(pdf._id)}
+                                title="Approve Paper"
+                                className="inline-flex items-center px-3 py-1.5 bg-green-100 text-green-700 rounded-md hover:bg-green-200 text-xs font-semibold"
+                            >
+                                <CheckCircleIcon /> Approve
+                            </button>
+                        )}
+                        <button
+                            onClick={() => handleDelete(pdf._id)}
+                            title="Delete Paper"
+                            className="p-2 rounded-full bg-red-100 text-red-700 hover:bg-red-200"
+                        >
+                            <TrashIcon />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -402,12 +415,6 @@ export default function PdfListPage() {
         onClose={() => setConfirmation({ ...confirmation, isOpen: false })}
         onConfirm={confirmation.onConfirm}
         message={confirmation.message}
-      />
-      <NotificationModal
-        isOpen={notification.isOpen}
-        onClose={() => setNotification({ ...notification, isOpen: false })}
-        message={notification.message}
-        isError={notification.isError}
       />
     </div>
   );

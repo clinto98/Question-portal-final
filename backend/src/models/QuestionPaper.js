@@ -65,6 +65,11 @@ const QuestionPaperSchema = new mongoose.Schema(
             required: [true, "Exam type is required."],
             enum: ["Board", "Entrance", "Scholarship", "Other"],
         },
+        status: {
+            type: String,
+            enum: ['pending', 'approved', 'rejected'],
+            default: 'pending'
+        },
         // --- ADDED: Field for the question paper year ---
         questionPaperYear: {
             type: Number,
