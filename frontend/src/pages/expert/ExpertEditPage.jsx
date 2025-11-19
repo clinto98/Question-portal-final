@@ -161,6 +161,8 @@ const ImageCropModal = ({ modalState, closeModal, applyCrop, onCropComplete, onI
   );
 };
 
+import { Button, explanationTabConfig, ExplanationTabs } from "../../components/AIsuggestion";
+
 export default function ExpertEditPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -170,6 +172,79 @@ export default function ExpertEditPage() {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [imgElementForCrop, setImgElementForCrop] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiExplanations, setAiExplanations] = useState(null);
+  const [activeExplanationTab, setActiveExplanationTab] = useState("explanation1");
+
+  const handleGenerateExplanation = async () => {
+    if (!formData.questionText && !formData.questionImage) {
+      toast.error("Please provide question text or an image before generating an explanation.");
+      return;
+    }
+    if (formData.correctAnswer === -1) {
+      toast.error("Please select a correct answer first.");
+      return;
+    }
+
+    const optionsText = formData.choices.map(choice => choice.text);
+    if (optionsText.some(opt => !opt)) {
+      toast.error("Please ensure all answer choices have text.");
+      return;
+    }
+
+    setIsGenerating(true);
+    const toastId = toast.loading("Generating explanation with AI...");
+
+    try {
+      const token = localStorage.getItem("token");
+      
+      const formPayload = new FormData();
+      formPayload.append('question', formData.questionText);
+      
+      optionsText.forEach(opt => {
+        formPayload.append('options', opt);
+      });
+      
+      formPayload.append('correctAnswer', formData.choices[formData.correctAnswer].text);
+
+      if (formData.questionImage instanceof File) {
+        formPayload.append('questionImage', formData.questionImage);
+      }
+
+      formData.choices.forEach((choice) => {
+        if (choice.image instanceof File) {
+          formPayload.append('choiceImages', choice.image);
+        }
+      });
+
+      const res = await axios.post(`${host}/api/groq/generate-explanation`, formPayload, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (res.data.success) {
+        setAiExplanations(res.data.data);
+        setActiveExplanationTab('explanation1'); // Set default tab
+        setFormData(prev => ({ 
+          ...prev, 
+          explanation: res.data.data.explanation1, 
+          keywords: res.data.data.keywords,
+          topic: res.data.data.topic 
+        }));
+        toast.success("Explanation generated successfully!", { id: toastId });
+      } else {
+        throw new Error(res.data.message || "Failed to generate explanation.");
+      }
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || err.message || "An error occurred.";
+      toast.error(`Generation failed: ${errorMessage}`, { id: toastId });
+      console.error("Failed to generate explanation:", err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -391,15 +466,71 @@ export default function ExpertEditPage() {
             addChoice={addChoice}
             onRemoveChoiceImage={handleRemoveChoiceImage}
           />
-          <ContentInputSection
-            label="Explanation"
-            textName="explanation"
-            textValue={formData.explanation}
-            imageValue={formData.explanationImage}
-            onTextChange={handleInputChange}
-            onFileChange={(e) => handleFileChange(e, "explanationImage")}
-            onRemoveImage={() => handleRemoveImage("explanationImage")}
-          />
+          <SectionWrapper title="Explanation">
+            <div className="flex justify-end -mt-12">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleGenerateExplanation}
+                disabled={isGenerating || loading}
+                className="flex items-center gap-2"
+              >
+                {isGenerating ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 text-blue-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  "✨ Generate with AI"
+                )}
+              </Button>
+            </div>
+            <ExplanationTabs
+              explanations={aiExplanations}
+              activeTab={activeExplanationTab}
+              onTabClick={(tab) => {
+                setActiveExplanationTab(tab);
+                setFormData(prev => ({ ...prev, explanation: aiExplanations[tab] }));
+              }}
+              value={formData.explanation}
+              onInputChange={handleInputChange}
+            />
+            <div className="flex items-center gap-4">
+              <input
+                id="explanationImage-file-input"
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFileChange(e, "explanationImage")}
+                className="hidden"
+              />
+              <label
+                htmlFor="explanationImage-file-input"
+                className="cursor-pointer bg-blue-50 text-blue-700 font-semibold text-sm px-4 py-2 rounded-full hover:bg-blue-100 transition"
+              >
+                Upload Explanation Diagram
+              </label>
+              {formData.explanationImage && (
+                <div className="relative">
+                  <img
+                    src={getImagePreviewUrl(formData.explanationImage)}
+                    alt="Explanation Preview"
+                    className="rounded-md h-24 w-auto object-contain border p-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage("explanationImage")}
+                    className="absolute top-0 right-0 -mt-2 -mr-2 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs font-bold hover:bg-red-700 transition"
+                    aria-label="Remove image"
+                  >
+                    &times;
+                  </button>
+                </div>
+              )}
+            </div>
+          </SectionWrapper>
           <SectionWrapper title="Additional Information">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
