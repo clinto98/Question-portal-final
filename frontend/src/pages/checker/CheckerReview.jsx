@@ -106,13 +106,20 @@ export default function CheckerReview() {
     message: "",
   });
 
-  // State for filters and pagination
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(
+    () => Number(sessionStorage.getItem("checkerReviewPage")) || 1
+  );
   const [totalPages, setTotalPages] = useState(1);
-  const [filterMaker, setFilterMaker] = useState("All");
-  const [filterCourse, setFilterCourse] = useState("All");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [filterMaker, setFilterMaker] = useState(
+    () => sessionStorage.getItem("checkerReviewMaker") || "All"
+  );
+  const [filterCourse, setFilterCourse] = useState(
+    () => sessionStorage.getItem("checkerReviewCourse") || "All"
+  );
+  const [searchTerm, setSearchTerm] = useState(
+    () => sessionStorage.getItem("checkerReviewSearch") || ""
+  );
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
 
   const [makers, setMakers] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -144,6 +151,13 @@ export default function CheckerReview() {
       clearTimeout(timerId);
     };
   }, [searchTerm]);
+
+  useEffect(() => {
+    sessionStorage.setItem("checkerReviewPage", currentPage);
+    sessionStorage.setItem("checkerReviewMaker", filterMaker);
+    sessionStorage.setItem("checkerReviewCourse", filterCourse);
+    sessionStorage.setItem("checkerReviewSearch", searchTerm);
+  }, [currentPage, filterMaker, filterCourse, searchTerm]);
 
   useEffect(() => {
     const fetchPending = async () => {
